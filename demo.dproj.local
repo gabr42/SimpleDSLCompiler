@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+	<Transactions>
+    <Transaction>2017-07-08 15:06:42.000.827,C:\Users\gabr\Documents\Embarcadero\Studio\Projects\Project22.dproj=C:\0\Project22.dproj</Transaction>
+    <Transaction>2017-07-09 12:24:11.000.524,=C:\0\Unit1.pas</Transaction>
+    <Transaction>2017-07-09 12:24:55.000.100,C:\0\Unit1.pas=H:\RAZVOJ\SimpleDSLCompiler\SimpleDSLCompiler.pas</Transaction>
+    <Transaction>2017-07-09 12:25:17.000.100,C:\0\Project22.dproj=H:\RAZVOJ\SimpleDSLCompiler\demo.dproj</Transaction>
+    <Transaction>2017-07-09 13:51:08.727,=H:\RAZVOJ\SimpleDSLCompiler\Unit1.pas</Transaction>
+    <Transaction>2017-07-09 13:51:15.834,H:\RAZVOJ\SimpleDSLCompiler\SimpleDSLCompiler.Parser.pas=H:\RAZVOJ\SimpleDSLCompiler\Unit1.pas</Transaction>
+    <Transaction>2017-07-09 13:54:57.171,=H:\RAZVOJ\SimpleDSLCompiler\Unit1.pas</Transaction>
+    <Transaction>2017-07-09 13:55:04.708,H:\RAZVOJ\SimpleDSLCompiler\SimpleDSLCompiler.AST.pas=H:\RAZVOJ\SimpleDSLCompiler\Unit1.pas</Transaction>
+    <Transaction>2017-07-09 14:38:45.616,=H:\RAZVOJ\SimpleDSLCompiler\Unit1.pas</Transaction>
+    <Transaction>2017-07-09 14:39:37.404,=H:\RAZVOJ\SimpleDSLCompiler\Unit2.pas</Transaction>
+    <Transaction>2017-07-09 14:39:42.289,H:\RAZVOJ\SimpleDSLCompiler\SimpleDSLCompiler.Code.pas=H:\RAZVOJ\SimpleDSLCompiler\Unit2.pas</Transaction>
+    <Transaction>2017-07-09 14:51:12.546,=H:\RAZVOJ\SimpleDSLCompiler\Unit1.pas</Transaction>
+    <Transaction>2017-07-09 14:51:18.299,H:\RAZVOJ\SimpleDSLCompiler\SimpleDSLCompiler.Codegen.pas=H:\RAZVOJ\SimpleDSLCompiler\Unit1.pas</Transaction>
+    <Transaction>2017-07-09 14:53:06.750,=H:\RAZVOJ\SimpleDSLCompiler\Unit1.pas</Transaction>
+    <Transaction>2017-07-09 14:53:14.430,H:\RAZVOJ\SimpleDSLCompiler\SimpleDSLCompiler.ErrorInfo.pas=H:\RAZVOJ\SimpleDSLCompiler\Unit1.pas</Transaction>
+    <Transaction>2017-07-09 14:54:12.680,=H:\RAZVOJ\SimpleDSLCompiler\Unit1.pas</Transaction>
+    <Transaction>2017-07-09 14:54:17.452,H:\RAZVOJ\SimpleDSLCompiler\SimpleDSLCompiler.Base.pas=H:\RAZVOJ\SimpleDSLCompiler\Unit1.pas</Transaction>
+    <Transaction>2017-07-09 14:58:49.089,H:\RAZVOJ\SimpleDSLCompiler\SimpleDSLCompiler.Runnable.pas=H:\RAZVOJ\SimpleDSLCompiler\SimpleDSLCompiler.Code.pas</Transaction>
+  </Transactions>
+</BorlandProject>
