@@ -111,8 +111,8 @@ begin
     FLookaheadIdent := #0;
     Result := true;
   end
-  else
-    Result :=  FTokenizer.GetToken(token, ident);
+  else 
+    Result := FTokenizer.GetToken(token, ident);
 end; { TSimpleDSLParser.GetToken }
 
 function TSimpleDSLParser.IsFunction(const ident: string; var funcIdx: integer): boolean;
@@ -265,6 +265,7 @@ begin
 
   func := AST.CreateFunction;
   func.Name := funcName;
+  AST.Functions.Add(func); // we might need this function in the global table for recursive calls
 
   FContext.CurrentFunc := func;
   try
@@ -296,13 +297,11 @@ begin
       Exit;
 
     // function body
-    Result := ParseBlock(block);
+    if not ParseBlock(block) then
+      Exit;
 
-    if Result then begin
-      func.Body := block;
-      AST.Functions.Add(func);
-    end;
-
+    func.Body := block;
+    Result := true;
   finally
     FContext.CurrentFunc := nil;
   end;
@@ -450,7 +449,7 @@ end; { TSimpleDSLParser.ParseTerm }
 
 procedure TSimpleDSLParser.PushBack(token: TTokenKind; const ident: string);
 begin
-  Assert(ident = #0, 'TSimpleDSLParser: Lookahead buffer is not empty');
+  Assert(FLookaheadIdent = #0, 'TSimpleDSLParser: Lookahead buffer is not empty');
   FLookaheadToken := token;
   FLookaheadIdent := ident;
 end; { TSimpleDSLParser.PushBack }
