@@ -19,5 +19,7 @@
     <Transaction>2017-07-09 14:54:12.680,=H:\RAZVOJ\SimpleDSLCompiler\Unit1.pas</Transaction>
     <Transaction>2017-07-09 14:54:17.452,H:\RAZVOJ\SimpleDSLCompiler\SimpleDSLCompiler.Base.pas=H:\RAZVOJ\SimpleDSLCompiler\Unit1.pas</Transaction>
     <Transaction>2017-07-09 14:58:49.089,H:\RAZVOJ\SimpleDSLCompiler\SimpleDSLCompiler.Runnable.pas=H:\RAZVOJ\SimpleDSLCompiler\SimpleDSLCompiler.Code.pas</Transaction>
+    <Transaction>2017-07-09 15:30:56.652,=H:\RAZVOJ\SimpleDSLCompiler\Unit1.pas</Transaction>
+    <Transaction>2017-07-09 15:31:04.213,H:\RAZVOJ\SimpleDSLCompiler\SimpleDSLCompiler.Tokenizer.pas=H:\RAZVOJ\SimpleDSLCompiler\Unit1.pas</Transaction>
   </Transactions>
 </BorlandProject>

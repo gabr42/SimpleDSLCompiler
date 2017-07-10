@@ -95,6 +95,7 @@
         <DCCReference Include="SimpleDSLCompiler.Codegen.pas"/>
         <DCCReference Include="SimpleDSLCompiler.ErrorInfo.pas"/>
         <DCCReference Include="SimpleDSLCompiler.Base.pas"/>
+        <DCCReference Include="SimpleDSLCompiler.Tokenizer.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

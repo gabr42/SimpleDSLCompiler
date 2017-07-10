@@ -13,7 +13,8 @@ uses
   SimpleDSLCompiler.Runnable in 'SimpleDSLCompiler.Runnable.pas',
   SimpleDSLCompiler.Codegen in 'SimpleDSLCompiler.Codegen.pas',
   SimpleDSLCompiler.ErrorInfo in 'SimpleDSLCompiler.ErrorInfo.pas',
-  SimpleDSLCompiler.Base in 'SimpleDSLCompiler.Base.pas';
+  SimpleDSLCompiler.Base in 'SimpleDSLCompiler.Base.pas',
+  SimpleDSLCompiler.Tokenizer in 'SimpleDSLCompiler.Tokenizer.pas';
 
 type
   TParams = TArray<integer>;
@@ -142,17 +143,21 @@ var
 var
   compiler: ISimpleDSLCompiler;
   exec: ISimpleDSLProgram;
+  res: integer;
 
 const
-  CFibonacciCode =
-    'fib(i)                          '#1310 +
-    '   if i < 2                     '#1310 +
-    '     return 1                   '#1310 +
-    '   else                         '#1310 +
-    '     return fib(i-2) + fib(i-1) '#1310 +
-    '                                '#1310 +
-    'main()                          '#1310 +
-    '   return fib(7)                '#1310;
+  CMultiProcCode =
+    'fib(i)                          '#13#10 +
+    '   if i < 2                     '#13#10 +
+    '     return 1                   '#13#10 +
+    '   else                         '#13#10 +
+    '     return fib(i-2) + fib(i-1) '#13#10 +
+    '                                '#13#10 +
+    'mult(a,b)                       '#13#10 +
+    '  if b < 2                      '#13#10 +
+    '    return a                    '#13#10 +
+    '  else                          '#13#10 +
+    '    return mult(a, b-1) + a     '#13#10;
 
 begin
   SetLength(functions, 2);
@@ -215,11 +220,19 @@ begin
     finally FreeAndNil(memo); end;
 
     compiler := CreateSimpleDSLCompiler;
-    exec := compiler.Compile(CFibonacciCode);
+    exec := compiler.Compile(CMultiProcCode);
     if not assigned(exec) then
       Writeln('Compilation/codegen error: ' + (compiler as ISimpleDSLErrorInfo).ErrorInfo)
-    else
-      Writeln(exec.Call('fib', [7]));
+    else begin
+      if exec.Call('fib', [7], res) then
+        Writeln('fib(7) = ', res)
+      else
+        Writeln('fib: ' + (exec as ISimpleDSLErrorInfo).ErrorInfo);
+      if exec.Call('mult', [5,3], res) then
+        Writeln('mult(5,3) = ', res)
+      else
+        Writeln('mult: ' + (exec as ISimpleDSLErrorInfo).ErrorInfo);
+    end;
 
     Readln;
   except
