@@ -13,14 +13,16 @@ unit SimpleDSLCompiler;
 /// statement = if
 ///           | return
 ///
-/// if = "if" expression NL block NL "else" NL block
+/// if = "if" expression NL block "else" NL block
 ///
 /// return = "return" expression
 ///
-/// expression = numeric_constant
-///            | function_call
-///            | identifier
-///            | expression operator expression
+/// expression = term
+///            | term operator term
+///
+/// term = numeric_constant
+///      | function_call
+///      | identifier
 ///
 /// operator = "+" | "-" | "<"
 ///

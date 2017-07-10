@@ -30,16 +30,24 @@ type
 
   TSimpleDSLParser = class(TSimpleDSLCompilerBase, ISimpleDSLParser)
   strict private
-    FAST      : ISimpleDSLAST;
-    FTokenizer: ISimpleDSLTokenizer;
+    FAST           : ISimpleDSLAST;
+    FTokenizer     : ISimpleDSLTokenizer;
+    FLookaheadToken: TTokenKind;
+    FLookaheadIdent: string;
   strict protected
-    function  FetchToken(allowed: TTokenKinds; skipOver: TTokenKinds;
-      var ident: string; var token: TTokenKind): boolean; overload;
+    function  FetchToken(allowed: TTokenKinds; var ident: string; var token: TTokenKind;
+      skipOver: TTokenKinds = []): boolean; overload;
     function  FetchToken(allowed: TTokenKinds; var ident: string): boolean; overload; inline;
     function  FetchToken(allowed: TTokenKinds): boolean; overload; inline;
+    function  GetToken(var token: TTokenKind; var ident: string): boolean;
     function  ParseBlock(const block: IASTBlock): boolean;
+    function  ParseExpression(const expression: IASTExpression): boolean;
     function  ParseFunction: boolean;
+    function  ParseIf(const statement: IASTIfStatement): boolean;
+    function  ParseReturn(const statement: IASTReturnStatement): boolean;
     function  ParseStatement(const block: IASTBlock; var statement: IASTStatement): boolean;
+    function  ParseTerm(const term: IASTTerm): boolean;
+    procedure PushBack(token: TTokenKind; const ident: string);
   public
     function Parse(const code: string; const tokenizer: ISimpleDSLTokenizer;
       const ast: ISimpleDSLAST): boolean;
@@ -54,13 +62,13 @@ end; { CreateSimpleDSLParser }
 
 { TSimpleDSLParser }
 
-function TSimpleDSLParser.FetchToken(allowed: TTokenKinds; skipOver: TTokenKinds;
-  var ident: string; var token: TTokenKind): boolean;
+function TSimpleDSLParser.FetchToken(allowed: TTokenKinds; var ident: string;
+  var token: TTokenKind; skipOver: TTokenKinds): boolean;
 var
   loc: TPoint;
 begin
   Result := false;
-  while FTokenizer.GetToken(token, ident) do
+  while GetToken(token, ident) do
     if token in allowed then
       Exit(true)
     else if (token = tkWhitespace) or (token in skipOver) then
@@ -75,7 +83,7 @@ function TSimpleDSLParser.FetchToken(allowed: TTokenKinds; var ident: string): b
 var
   token: TTokenKind;
 begin
-  Result := FetchToken(allowed, [], ident, token);
+  Result := FetchToken(allowed, ident, token);
 end; { TSimpleDSLParser.FetchToken }
 
 function TSimpleDSLParser.FetchToken(allowed: TTokenKinds): boolean;
@@ -85,12 +93,25 @@ begin
   Result := FetchToken(allowed, ident);
 end; { TSimpleDSLParser.FetchToken }
 
+function TSimpleDSLParser.GetToken(var token: TTokenKind; var ident: string): boolean;
+begin
+  if FLookaheadIdent <> #0 then begin
+    token := FLookaheadToken;
+    ident := FLookaheadIdent;
+    FLookaheadIdent := #0;
+    Result := true;
+  end
+  else
+    Result :=  FTokenizer.GetToken(token, ident);
+end; { TSimpleDSLParser.GetToken }
+
 function TSimpleDSLParser.Parse(const code: string; const tokenizer: ISimpleDSLTokenizer;
   const ast: ISimpleDSLAST): boolean;
 begin
   Result := false;
   FTokenizer := tokenizer;
   FAST := ast;
+  FLookaheadIdent := #0;
   tokenizer.Initialize(code);
   while not tokenizer.IsAtEnd do
     if not ParseFunction then
@@ -104,7 +125,7 @@ var
 begin
   Result := false;
 
-  if not ParseStatement(statement) then
+  if not ParseStatement(block, statement) then
     Exit;
 
   block.Statement := statement;
@@ -114,6 +135,36 @@ begin
 
   Result := true;
 end; { TSimpleDSLParser.ParseBlock }
+
+function TSimpleDSLParser.ParseExpression(const expression: IASTExpression): boolean;
+var
+  ident: string;
+  term : IASTTerm;
+  token: TTokenKind;
+begin
+  Result := false;
+
+  /// expression = term
+  ///            | term operator term
+  ///
+  /// operator = "+" | "-" | "<"
+
+  if not ParseTerm(term) then
+    Exit;
+
+  if not FetchToken([tkLessThan, tkPlus, tkMinus], ident, token) then begin
+    PushBack(token, ident);
+    // insert term into AST
+    Result := true;
+    Exit;
+  end;
+
+  if not ParseTerm(term) then
+    Exit;
+
+  // insert binary operation into AST
+  Result := true;
+end; { TSimpleDSLParser.ParseExpression }
 
 function TSimpleDSLParser.ParseFunction: boolean;
 var
@@ -128,7 +179,7 @@ begin
   /// function = identifier "(" [ identifier { "," identifier } ] ")" NL block
 
   // function name
-  if not FetchToken([tkIdent], [tkNewLine], funcName, token) then
+  if not FetchToken([tkIdent], funcName, token, [tkNewLine]) then
     Exit;
 
   func := FAST.Functions.Add;
@@ -141,7 +192,7 @@ begin
   // parameter list
   expected := [tkIdent, tkRightParen];
   repeat
-    if not FetchToken(expected, [], ident, token) then
+    if not FetchToken(expected, ident, token) then
       Exit;
     if token = tkRightParen then
       break //repeat
@@ -162,6 +213,51 @@ begin
 
   Result := ParseBlock(func.Body);
 end; { TSimpleDSLParser.ParseFunction }
+
+function TSimpleDSLParser.ParseIf(const statement: IASTIfStatement): boolean;
+var
+  ident: string;
+  loc  : TPoint;
+begin
+  Result := false;
+
+  /// if = "if" expression NL block "else" NL block
+  /// ("if" was already parsed)
+
+  if not ParseExpression(statement.Condition) then
+    Exit;
+
+  if not FetchToken([tkNewLine]) then
+    Exit;
+
+  if not ParseBlock(statement.ThenBlock) then
+    Exit;
+
+  if not FetchToken([tkIdent], ident) then
+    Exit;
+
+  if not SameText(ident, 'else') then begin
+    loc := FTokenizer.CurrentLocation;
+    LastError := Format('"else" expected in line %d, column %d', [loc.X, loc.Y]);
+    Exit;
+  end;
+
+  if not FetchToken([tkNewLine]) then
+    Exit;
+
+  if not ParseBlock(statement.ElseBlock) then
+    Exit;
+
+  Result := true;
+end; { TSimpleDSLParser.ParseIf }
+
+function TSimpleDSLParser.ParseReturn(const statement: IASTReturnStatement): boolean;
+begin
+  /// return = "return" expression
+  /// ("return" was already parsed)
+
+  Result := ParseExpression(statement.Expression);
+end; { TSimpleDSLParser.ParseReturn }
 
 function TSimpleDSLParser.ParseStatement(const block: IASTBlock;
   var statement: IASTStatement): boolean;
@@ -187,5 +283,29 @@ begin
     LastError := Format('Invalid reserved word %s in line %d, column %d', [ident, loc.X, loc.Y]);
   end;
 end; { TSimpleDSLParser.ParseStatement }
+
+function TSimpleDSLParser.ParseTerm(const term: IASTTerm): boolean;
+var
+  ident: string;
+begin
+  Result := false;
+
+  /// term = numeric_constant
+  ///      | function_call
+  ///      | identifier
+  ///
+  /// function_call = identifier "(" [expression { "," expression } ] ")"
+
+  if not FetchToken([tkIdent], ident) then
+    Exit;
+  
+end; { TSimpleDSLParser.ParseTerm }
+
+procedure TSimpleDSLParser.PushBack(token: TTokenKind; const ident: string);
+begin
+  Assert(ident = #0, 'TSimpleDSLParser: Lookahead buffer is not empty');
+  FLookaheadToken := token;
+  FLookaheadIdent := ident;
+end; { TSimpleDSLParser.PushBack }
 
 end.

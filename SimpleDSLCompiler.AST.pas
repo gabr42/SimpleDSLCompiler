@@ -6,15 +6,49 @@ uses
   System.Generics.Collections;
 
 type
+  IASTTerm = interface ['{74B36C0D-30A4-47E6-B359-E45C4E94580C}']
+  end; { IASTTerm }
+
+  TBinaryOperation = (opNone, opAdd, opSubtract, opCompareLess);
+
+  IASTExpression = interface ['{086BECB3-C733-4875-ABE0-EE71DCC0011D}']
+    function  GetBinaryOp: TBinaryOperation;
+    function  GetTerm1: IASTTerm;
+    function  GetTerm2: IASTTerm;
+    procedure SetBinaryOp(const value: TBinaryOperation);
+    procedure SetTerm1(const value: IASTTerm);
+    procedure SetTerm2(const value: IASTTerm);
+  //
+    property Term1: IASTTerm read GetTerm1 write SetTerm1;
+    property Term2: IASTTerm read GetTerm2 write SetTerm2;
+    property BinaryOp: TBinaryOperation read GetBinaryOp write SetBinaryOp;
+  end; { IASTExpression }
+
+  IASTBlock = interface;
+
   TStatementType = (stIf, stReturn);
 
   IASTStatement = interface ['{372AF2FA-E139-4EFB-8282-57FFE0EDAEC8}']
   end; { IASTStatement }
 
   IASTIfStatement = interface(IASTStatement) ['{A6BE8E87-39EC-4832-9F4A-D5BF0901DA17}']
+    function  GetCondition: IASTExpression;
+    function  GetElseBlock: IASTBlock;
+    function  GetThenBlock: IASTBlock;
+    procedure SetCondition(const value: IASTExpression);
+    procedure SetElseBlock(const value: IASTBlock);
+    procedure SetThenBlock(const value: IASTBlock);
+  //
+    property Condition: IASTExpression read GetCondition write SetCondition;
+    property ThenBlock: IASTBlock read GetThenBlock write SetThenBlock;
+    property ElseBlock: IASTBlock read GetElseBlock write SetElseBlock;
   end; { IASTIfStatement }
 
   IASTReturnStatement = interface(IASTStatement) ['{61F7403E-CB08-43FC-AF37-A96B05BB2F9C}']
+    function  GetExpression: IASTExpression;
+    procedure SetExpression(const value: IASTExpression);
+  //
+    property Expression: IASTExpression read GetExpression write SetExpression;
   end; { IASTReturnStatement }
 
   IASTBlock = interface ['{450D40D0-4866-4CD2-98E8-88387F5B9904}']
@@ -63,13 +97,53 @@ uses
   System.SysUtils;
 
 type
+  TASTExpression = class(TInterfacedObject, IASTExpression)
+  strict private
+    FBinaryOp: TBinaryOperation;
+    FTerm1   : IASTTerm;
+    FTerm2   : IASTTerm;
+  strict protected
+    function  GetBinaryOp: TBinaryOperation;
+    function  GetTerm1: IASTTerm;
+    function  GetTerm2: IASTTerm;
+    procedure SetBinaryOp(const value: TBinaryOperation);
+    procedure SetTerm1(const value: IASTTerm);
+    procedure SetTerm2(const value: IASTTerm);
+  public
+    property Term1: IASTTerm read GetTerm1 write SetTerm1;
+    property Term2: IASTTerm read GetTerm2 write SetTerm2;
+    property BinaryOp: TBinaryOperation read GetBinaryOp write SetBinaryOp;
+  end; { TASTExpression }
+
   TASTStatement = class(TInterfacedObject, IASTStatement)
   end; { TASTStatement }
 
   TASTIfStatement = class(TASTStatement)
+  strict private
+    FCondition: IASTExpression;
+    FElseBlock: IASTBlock;
+    FThenBlock: IASTBlock;
+  strict protected
+    function  GetCondition: IASTExpression; inline;
+    function  GetElseBlock: IASTBlock; inline;
+    function  GetThenBlock: IASTBlock; inline;
+    procedure SetCondition(const value: IASTExpression); inline;
+    procedure SetElseBlock(const value: IASTBlock); inline;
+    procedure SetThenBlock(const value: IASTBlock); inline;
+  public
+    property Condition: IASTExpression read GetCondition write SetCondition;
+    property ThenBlock: IASTBlock read GetThenBlock write SetThenBlock;
+    property ElseBlock: IASTBlock read GetElseBlock write SetElseBlock;
   end; { TASTIfStatement }
 
   TASTReturnStatement = class(TASTStatement)
+  strict private
+    FExpression: IASTExpression;
+  strict protected
+    function  GetExpression: IASTExpression; inline;
+    procedure SetExpression(const value: IASTExpression); inline;
+  public
+    property Expression: IASTExpression read GetExpression write SetExpression;
   end; { TASTReturnStatement }
 
   TASTBlock = class(TInterfacedObject, IASTBlock)
@@ -130,6 +204,52 @@ function CreateSimpleDSLAST: ISimpleDSLAST;
 begin
   Result := TSimpleDSLAST.Create;
 end; { CreateSimpleDSLAST }
+
+{ TASTIfStatement }
+
+function TASTIfStatement.GetCondition: IASTExpression;
+begin
+  Result := FCondition;
+end; { TASTIfStatement.GetCondition }
+
+function TASTIfStatement.GetElseBlock: IASTBlock;
+begin
+  Result := FElseBlock;
+end; { TASTIfStatement.GetElseBlock }
+
+function TASTIfStatement.GetThenBlock: IASTBlock;
+begin
+  Result := FThenBlock;
+end; { TASTIfStatement.GetThenBlock }
+
+procedure TASTIfStatement.SetCondition(const value: IASTExpression);
+begin
+  FCondition := value;
+end; { TASTIfStatement.SetCondition }
+
+procedure TASTIfStatement.SetElseBlock(const value: IASTBlock);
+begin
+  FElseBlock := value;
+end; { TASTIfStatement.SetElseBlock }
+
+procedure TASTIfStatement.SetThenBlock(const value: IASTBlock);
+begin
+  FThenBlock := value;
+end; { TASTIfStatement.SetThenBlock }
+
+{ TASTReturnStatement }
+
+function TASTReturnStatement.GetExpression: IASTExpression;
+begin
+  Result := FExpression;
+end; { TASTReturnStatement.GetExpression }
+
+procedure TASTReturnStatement.SetExpression(const value: IASTExpression);
+begin
+  FExpression := value;
+end; { TASTReturnStatement.SetExpression }
+
+{ TASTBlock }
 
 function TASTBlock.CreateStatement(statementType: TStatementType): IASTStatement;
 begin
@@ -231,5 +351,35 @@ function TSimpleDSLAST.GetFunctions: IASTFunctions;
 begin
   Result := FFunctions;
 end; { TSimpleDSLAST.GetFunctions }
+
+function TASTExpression.GetBinaryOp: TBinaryOperation;
+begin
+  Result := opNone;
+end; { TASTExpression.GetBinaryOp }
+
+function TASTExpression.GetTerm1: IASTTerm;
+begin
+  Result := FTerm1;
+end;
+
+function TASTExpression.GetTerm2: IASTTerm;
+begin
+  Result := FTerm2;
+end;
+
+procedure TASTExpression.SetBinaryOp(const value: TBinaryOperation);
+begin
+  // TODO 1 Implement: TASTExpression.SetBinaryOp
+end;
+
+procedure TASTExpression.SetTerm1(const value: IASTTerm);
+begin
+  FTerm1 := value;
+end;
+
+procedure TASTExpression.SetTerm2(const value: IASTTerm);
+begin
+  FTerm2 := value;
+end;
 
 end.
