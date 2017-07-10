@@ -141,6 +141,7 @@ begin
   CodegenFactory := CreateSimpleDSLCodegen;
   ParserFactory := CreateSimpleDSLParser;
   ProgramFactory := CreateSimpleDSLProgram;
+  TokenizerFactory := CreateSimpleDSLTokenizer;
 end; { TSimpleDSLCompiler.Create }
 
 function TSimpleDSLCompiler.Compile(const code: string): ISimpleDSLProgram;

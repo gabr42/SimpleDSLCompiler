@@ -3,7 +3,8 @@ unit SimpleDSLCompiler.Tokenizer;
 interface
 
 uses
-  System.Types;
+  System.Types,
+  System.Classes;
 
 type
   TTokenKind = (tkUnknown, tkNewLine, tkWhitespace,
@@ -26,7 +27,6 @@ implementation
 
 uses
   System.SysUtils,
-  System.Classes,
   System.Character,
   SimpleDSLCompiler.Base;
 
@@ -75,7 +75,7 @@ end; { TSimpleDSLTokenizer.BeforeDestruction }
 
 function TSimpleDSLTokenizer.CurrentLocation: TPoint;
 begin
-  Result := Point(FNextLine, FNextChar);
+  Result := Point(FNextLine + 1, FNextChar);
 end; { TSimpleDSLTokenizer.CurrentLocation }
 
 function TSimpleDSLTokenizer.GetChar(var ch: char): boolean;
@@ -109,7 +109,7 @@ var
 begin
   Result := '';
   while GetChar(ch) do begin
-    if TCharacter.IsLetter(ch) then
+    if ch.IsLetter then
       Result := Result + ch
     else begin
       PushBack(ch);
@@ -136,11 +136,11 @@ begin
     '<': kind := tkLessThan;
     ',': kind := tkComma;
     #13: kind := tkNewLine;
-    else if TCharacter.IsLetter(ch) then begin
+    else if ch.IsLetter then begin
       kind := tkIdent;
       identifier := ch + GetIdent;
     end
-    else if TCharacter.IsWhiteSpace(ch) then begin
+    else if ch.IsWhiteSpace then begin
       kind := tkWhitespace;
       SkipWhitespace;
     end
@@ -149,8 +149,6 @@ begin
 end; { TSimpleDSLTokenizer.GetToken }
 
 procedure TSimpleDSLTokenizer.Initialize(const code: string);
-var
-  iLine: integer;
 begin
   FProgram.Text := code;
   FNextLine := 0;
@@ -181,7 +179,7 @@ var
   ch: char;
 begin
   while GetChar(ch) do
-    if not TCharacter.IsWhiteSpace(ch) then begin
+    if (ch = #13) or (not ch.IsWhiteSpace) then begin
       PushBack(ch);
       Exit;
     end;
