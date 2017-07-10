@@ -287,6 +287,7 @@ end; { TSimpleDSLParser.ParseStatement }
 function TSimpleDSLParser.ParseTerm(const term: IASTTerm): boolean;
 var
   ident: string;
+  loc  : TPoint;
 begin
   Result := false;
 
@@ -298,7 +299,17 @@ begin
 
   if not FetchToken([tkIdent], ident) then
     Exit;
-  
+
+  if IsFunction(ident) then
+    // parse function call
+  else if IsNumber(ident) then
+    // parse numeric constant
+  else if IsVariable(ident) then
+    // parse variable
+  else begin
+    loc := FTokenizer.CurrentLocation;
+    LastError := Format('Unexpected token in line %d, column %d (not a number, variable, or function)', [loc.X, loc.Y]);
+  end;
 end; { TSimpleDSLParser.ParseTerm }
 
 procedure TSimpleDSLParser.PushBack(token: TTokenKind; const ident: string);
