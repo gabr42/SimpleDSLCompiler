@@ -6,8 +6,37 @@ uses
   System.Generics.Collections;
 
 type
+  TASTTermType = (termConstant, termVariable, termFunctionCall);
+
   IASTTerm = interface ['{74B36C0D-30A4-47E6-B359-E45C4E94580C}']
   end; { IASTTerm }
+
+  IASTTermConstant = interface(IASTTerm) ['{737340F5-E605-4480-BE6E-DA56FAA34104}']
+    function  GetValue: integer;
+    procedure SetValue(const value: integer);
+  //
+    property Value: integer read GetValue write SetValue;
+  end; { IASTTermConstant }
+
+  IASTTermVariable = interface(IASTTerm) ['{933DCB5B-6C73-44C2-BEAF-D8E16EF8134C}']
+    function  GetVariableIdx: integer;
+    procedure SetVariableIdx(const value: integer);
+  //
+    property VariableIdx: integer read GetVariableIdx write SetVariableIdx;
+  end; { IASTTermVariable }
+
+  IASTExpression = interface;
+
+  TExpressionList = TList<IASTExpression>;
+
+  IASTTermFunctionCall = interface(IASTTerm) ['{09F0FACF-4A6C-4E59-91C8-5104C560D36C}']
+    function  GetFunctionIdx: integer;
+    function  GetParameters: TExpressionList;
+    procedure SetFunctionIdx(const value: integer);
+  //
+    property FunctionIdx: integer read GetFunctionIdx write SetFunctionIdx;
+    property Parameters: TExpressionList read GetParameters;
+  end; { IASTTermFunctionCall }
 
   TBinaryOperation = (opNone, opAdd, opSubtract, opCompareLess);
 
@@ -26,7 +55,7 @@ type
 
   IASTBlock = interface;
 
-  TStatementType = (stIf, stReturn);
+  TASTStatementType = (stIf, stReturn);
 
   IASTStatement = interface ['{372AF2FA-E139-4EFB-8282-57FFE0EDAEC8}']
   end; { IASTStatement }
@@ -66,10 +95,9 @@ type
     function  GetParamNames: TParameterList;
     procedure SetBody(const value: IASTBlock);
     procedure SetName(const value: string);
-    procedure SetParamNames(const value: TParameterList);
   //
     property Name: string read GetName write SetName;
-    property ParamNames: TParameterList read GetParamNames write SetParamNames;
+    property ParamNames: TParameterList read GetParamNames;
     property Body: IASTBlock read GetBody write SetBody;
   end; { IASTFunction }
 
@@ -85,8 +113,8 @@ type
     function  CreateBlock: IASTBlock;
     function  CreateExpression: IASTExpression;
     function  CreateFunction: IASTFunction;
-    function  CreateStatement(statementType: TStatementType): IASTStatement;
-    function  CreateTerm: IASTTerm;
+    function  CreateStatement(statementType: TASTStatementType): IASTStatement;
+    function  CreateTerm(termType: TASTTermType): IASTTerm;
   end; { ISimpleDSLASTFactory }
 
   ISimpleDSLAST = interface(ISimpleDSLASTFactory) ['{114E494C-8319-45F1-91C8-4102AED1809E}']
@@ -106,8 +134,42 @@ uses
 
 type
   TASTTerm = class(TInterfacedObject, IASTTerm)
-
   end; { TASTTerm }
+
+  TASTTermConstant = class(TASTTerm, IASTTermConstant)
+  strict private
+    FValue: integer;
+  strict protected
+    function  GetValue: integer; inline;
+    procedure SetValue(const value: integer); inline;
+  public
+    property Value: integer read GetValue write SetValue;
+  end; { TASTTermConstant }
+
+  TASTTermVariable = class(TASTTerm, IASTTermVariable)
+  strict private
+    FVariableIdx: integer;
+  strict protected
+    function  GetVariableIdx: integer; inline;
+    procedure SetVariableIdx(const value: integer); inline;
+  public
+    property VariableIdx: integer read GetVariableIdx write SetVariableIdx;
+  end; { TASTTermVariable }
+
+  TASTTermFunctionCall = class(TASTTerm, IASTTermFunctionCall)
+  strict private
+    FFunctionIdx: integer;
+    FParameters : TExpressionList;
+  strict protected
+    function  GetFunctionIdx: integer; inline;
+    function  GetParameters: TExpressionList; inline;
+    procedure SetFunctionIdx(const value: integer); inline;
+  public
+    procedure AfterConstruction; override;
+    procedure BeforeDestruction; override;
+    property FunctionIdx: integer read GetFunctionIdx write SetFunctionIdx;
+    property Parameters: TExpressionList read GetParameters;
+  end; { IASTTermFunctionCall }
 
   TASTExpression = class(TInterfacedObject, IASTExpression)
   strict private
@@ -206,8 +268,8 @@ type
     function  CreateBlock: IASTBlock;
     function  CreateExpression: IASTExpression;
     function  CreateFunction: IASTFunction;
-    function  CreateStatement(statementType: TStatementType): IASTStatement;
-    function  CreateTerm: IASTTerm;
+    function  CreateStatement(statementType: TASTStatementType): IASTStatement;
+    function  CreateTerm(termType: TASTTermType): IASTTerm;
   end; { TSimpleDSLASTMaker }
 
   TSimpleDSLAST = class(TSimpleDSLASTMaker, ISimpleDSLAST)
@@ -225,6 +287,59 @@ function CreateSimpleDSLAST: ISimpleDSLAST;
 begin
   Result := TSimpleDSLAST.Create;
 end; { CreateSimpleDSLAST }
+
+{ TASTTermConstant }
+
+function TASTTermConstant.GetValue: integer;
+begin
+  Result := FValue;
+end; { TASTTermConstant.GetValue }
+
+procedure TASTTermConstant.SetValue(const value: integer);
+begin
+  FValue := value;
+end; { TASTTermConstant.SetValue }
+
+{ TASTTermVariable }
+
+function TASTTermVariable.GetVariableIdx: integer;
+begin
+  Result := FVariableIdx;
+end; { TASTTermVariable.GetVariableIdx }
+
+procedure TASTTermVariable.SetVariableIdx(const value: integer);
+begin
+  FVariableIdx := value;
+end; { TASTTermVariable.SetVariableIdx }
+
+{ TASTTermFunctionCall }
+
+procedure TASTTermFunctionCall.AfterConstruction;
+begin
+  inherited;
+  FParameters := TExpressionList.Create;
+end; { TASTTermFunctionCall.AfterConstruction }
+
+procedure TASTTermFunctionCall.BeforeDestruction;
+begin
+  FreeAndNil(FParameters);
+  inherited;
+end; { TASTTermFunctionCall.BeforeDestruction }
+
+function TASTTermFunctionCall.GetFunctionIdx: integer;
+begin
+  Result := FFunctionIdx;
+end; { TASTTermFunctionCall.GetFunctionIdx }
+
+function TASTTermFunctionCall.GetParameters: TExpressionList;
+begin
+  Result := FParameters;
+end; { TASTTermFunctionCall.GetParameters }
+
+procedure TASTTermFunctionCall.SetFunctionIdx(const value: integer);
+begin
+  FFunctionIdx := value;
+end; { TASTTermFunctionCall.SetFunctionIdx }
 
 { TASTExpression }
 
@@ -404,7 +519,7 @@ begin
   Result := TASTFunction.Create;
 end; { TSimpleDSLASTMaker.CreateFunction }
 
-function TSimpleDSLASTMaker.CreateStatement(statementType: TStatementType): IASTStatement;
+function TSimpleDSLASTMaker.CreateStatement(statementType: TASTStatementType): IASTStatement;
 begin
   case statementType of
     stIf:     Result := TASTIfStatement.Create;
@@ -413,9 +528,14 @@ begin
   end;
 end; { TSimpleDSLASTMaker.CreateStatement }
 
-function TSimpleDSLASTMaker.CreateTerm: IASTTerm;
+function TSimpleDSLASTMaker.CreateTerm(termType: TASTTermType): IASTTerm;
 begin
-  Result := TASTTerm.Create;
+  case termType of
+    termConstant:     Result := TASTTermConstant.Create;
+    termVariable:     Result := TASTTermVariable.Create;
+    termFunctionCall: Result := TASTTermFunctionCall.Create;
+    else raise Exception.Create('<AST Factory> CreateTerm: Unexpected term type');
+  end;
 end; { TSimpleDSLASTMaker.CreateTerm }
 
 { TSimpleDSLAST }
