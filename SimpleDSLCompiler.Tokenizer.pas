@@ -7,9 +7,11 @@ uses
   System.Classes;
 
 type
+  TTokenKind = (tkUnknown, tkWhitespace,
                 tkIdent, tkNumber,
                 tkLeftParen, tkRightParen, tkLeftCurly, tkRightCurly,
-                tkLessThan, tkPlus, tkMinus, tkComma);
+                tkLessThan, tkPlus, tkMinus, tkComma,
+                tkEOF);
 
   ISimpleDSLTokenizer = interface ['{086E9EFE-DB1E-4D81-A16A-C9F1F0F06D2B}']
     function  CurrentLocation: TPoint;
@@ -137,7 +139,7 @@ begin
   identifier := '';
   Result := GetChar(ch);
   if not Result then begin
-    LastError := 'Premature end of program';
+    kind := tkEOF;
     Exit;
   end;
   case ch of
@@ -161,7 +163,8 @@ begin
       kind := tkWhitespace;
       SkipWhitespace;
     end
-    else kind := tkUnknown;
+    else
+      kind := tkUnknown;
   end;
 end; { TSimpleDSLTokenizer.GetToken }
 

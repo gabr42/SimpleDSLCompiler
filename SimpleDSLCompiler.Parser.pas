@@ -45,8 +45,9 @@ type
     function  FetchToken(allowed: TTokenKinds): boolean; overload; inline;
     function  GetToken(var token: TTokenKind; var ident: string): boolean;
     function  IsFunction(const ident: string; var funcIdx: integer): boolean;
-    function IsVariable(const ident: string; var varIdx: integer): boolean;
+    function  IsVariable(const ident: string; var varIdx: integer): boolean;
     function  ParseBlock(var block: IASTBlock): boolean;
+    function  ParseExpression(var expression: IASTExpression): boolean;
     function  ParseExpresionList(parameters: TExpressionList): boolean;
     function  ParseFunction: boolean;
     function  ParseReturn(var statement: IASTStatement): boolean;
@@ -143,24 +144,23 @@ end; { TSimpleDSLParser.Parse }
 
 function TSimpleDSLParser.ParseBlock(var block: IASTBlock): boolean;
 var
-  blk      : IASTBlock;
   statement: IASTStatement;
 begin
   Result := false;
 
-  /// block = statement NL
+  /// block = { statement }
 
-  blk := AST.CreateBlock;
+  if not FetchToken([tkLeftCurly]) then
+    Exit;
 
   if not ParseStatement(statement) then
     Exit;
 
-  blk.Statement := statement;
-
-  if not FetchToken([tkNewLine]) then
+  if not FetchToken([tkRightCurly]) then
     Exit;
 
-  block := blk;
+  block := AST.CreateBlock;
+  block.Statement := statement;
   Result := true;
 end; { TSimpleDSLParser.ParseBlock }
 
@@ -196,6 +196,8 @@ begin
     Result := ParseExpression(expr);
     if not Result then
       Exit;
+
+    parameters.Add(expr);
 
     Include(expected, tkComma);
   until false;
@@ -259,7 +261,7 @@ begin
 
   // function name
   if not FetchToken([tkIdent], funcName, token) then
-    Exit;
+    Exit(token = tkEOF);
 
   func := AST.CreateFunction;
   func.Name := funcName;
@@ -291,9 +293,6 @@ begin
       end;
     until false;
 
-    if not FetchToken([tkNewLine]) then
-      Exit;
-
     // function body
     if not ParseBlock(block) then
       Exit;
@@ -316,13 +315,10 @@ var
 begin
   Result := false;
 
-  /// if = "if" expression NL block "else" NL block
+  /// if = "if" expression block "else" block
   /// ("if" was already parsed)
 
   if not ParseExpression(condition) then
-    Exit;
-
-  if not FetchToken([tkNewLine]) then
     Exit;
 
   if not ParseBlock(thenBlock) then
@@ -336,9 +332,6 @@ begin
     LastError := Format('"else" expected in line %d, column %d', [loc.X, loc.Y]);
     Exit;
   end;
-
-  if not FetchToken([tkNewLine]) then
-    Exit;
 
   if not ParseBlock(elseBlock) then
     Exit;

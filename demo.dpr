@@ -6,6 +6,7 @@ program demo;
 
 uses
   System.SysUtils,
+  System.Classes,
   System.Generics.Collections,
   SimpleDSLCompiler in 'SimpleDSLCompiler.pas',
   SimpleDSLCompiler.Parser in 'SimpleDSLCompiler.Parser.pas',
@@ -14,7 +15,8 @@ uses
   SimpleDSLCompiler.Codegen in 'SimpleDSLCompiler.Codegen.pas',
   SimpleDSLCompiler.ErrorInfo in 'SimpleDSLCompiler.ErrorInfo.pas',
   SimpleDSLCompiler.Base in 'SimpleDSLCompiler.Base.pas',
-  SimpleDSLCompiler.Tokenizer in 'SimpleDSLCompiler.Tokenizer.pas';
+  SimpleDSLCompiler.Tokenizer in 'SimpleDSLCompiler.Tokenizer.pas',
+  SimpleDSLCompiler.Codegen.Dump in 'SimpleDSLCompiler.Codegen.Dump.pas';
 
 type
   TParams = TArray<integer>;
@@ -144,14 +146,15 @@ var
   compiler: ISimpleDSLCompiler;
   exec: ISimpleDSLProgram;
   res: integer;
+  sl: TStringList;
 
 const
   CMultiProcCode =
-    '                               '#13#10 +
     'fib(i) {                       '#13#10 +
     '  if i < 2 {                   '#13#10 +
     '    return 1                   '#13#10 +
     '  } else {                     '#13#10 +
+    '    return fib(i-2) + fib(i-1) '#13#10 +
     '  }                            '#13#10 +
     '}                              '#13#10 +
     'mult(a,b) {                    '#13#10 +
@@ -222,8 +225,17 @@ begin
       Writeln(functions[1]([5,3]));
     finally FreeAndNil(memo); end;
 
+    sl := TStringList.Create;
+    try
+      compiler := CreateSimpleDSLCompiler;
+      compiler.CodegenFactory := function: ISimpleDSLCodegen begin Result := CreateSimpleDSLCodegenDump(sl); end;
+      compiler.Compile(CMultiProcCode);
+      Writeln(sl.Text);
+    finally FreeAndNil(sl); end;
+
     compiler := CreateSimpleDSLCompiler;
     exec := compiler.Compile(CMultiProcCode);
+
     if not assigned(exec) then
       Writeln('Compilation/codegen error: ' + (compiler as ISimpleDSLErrorInfo).ErrorInfo)
     else begin
