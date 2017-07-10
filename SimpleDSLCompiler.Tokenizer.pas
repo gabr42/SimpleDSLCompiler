@@ -7,9 +7,8 @@ uses
   System.Classes;
 
 type
-  TTokenKind = (tkUnknown, tkNewLine, tkWhitespace,
                 tkIdent, tkNumber,
-                tkLeftParen, tkRightParen,
+                tkLeftParen, tkRightParen, tkLeftCurly, tkRightCurly,
                 tkLessThan, tkPlus, tkMinus, tkComma);
 
   ISimpleDSLTokenizer = interface ['{086E9EFE-DB1E-4D81-A16A-C9F1F0F06D2B}']
@@ -89,16 +88,13 @@ begin
   else begin
     Result := not IsAtEnd;
     if Result then begin
+      ch := FCurrentLine[FNextChar];
+      Inc(FNextChar);
       if FNextChar > Length(FCurrentLine) then begin
-        ch := #13;
         Inc(FNextLine);
         if FNextLine < FProgram.Count then
           FCurrentLine := FProgram[FNextLine];
         FNextChar := 1;
-      end
-      else begin
-        ch := FCurrentLine[FNextChar];
-        Inc(FNextChar);
       end;
     end;
   end;
@@ -147,11 +143,12 @@ begin
   case ch of
     '(': kind := tkLeftParen;
     ')': kind := tkRightParen;
+    '{': kind := tkLeftCurly;
+    '}': kind := tkRightCurly;
     '+': kind := tkPlus;
     '-': kind := tkMinus;
     '<': kind := tkLessThan;
     ',': kind := tkComma;
-    #13: kind := tkNewLine;
     else if ch.IsLetter then begin
       kind := tkIdent;
       identifier := ch + GetIdent;
@@ -199,7 +196,7 @@ var
   ch: char;
 begin
   while GetChar(ch) do
-    if (ch = #13) or (not ch.IsWhiteSpace) then begin
+    if not ch.IsWhiteSpace then begin
       PushBack(ch);
       Exit;
     end;

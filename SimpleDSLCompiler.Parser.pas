@@ -40,8 +40,7 @@ type
     FLookaheadToken: TTokenKind;
     FLookaheadIdent: string;
   strict protected
-    function  FetchToken(allowed: TTokenKinds; var ident: string; var token: TTokenKind;
-      skipOver: TTokenKinds = []): boolean; overload;
+    function  FetchToken(allowed: TTokenKinds; var ident: string; var token: TTokenKind): boolean; overload;
     function  FetchToken(allowed: TTokenKinds; var ident: string): boolean; overload; inline;
     function  FetchToken(allowed: TTokenKinds): boolean; overload; inline;
     function  GetToken(var token: TTokenKind; var ident: string): boolean;
@@ -49,10 +48,9 @@ type
     function IsVariable(const ident: string; var varIdx: integer): boolean;
     function  ParseBlock(var block: IASTBlock): boolean;
     function  ParseExpresionList(parameters: TExpressionList): boolean;
-    function  ParseExpression(var expression: IASTExpression): boolean;
     function  ParseFunction: boolean;
-    function  ParseIf(var statement: IASTStatement): boolean;
     function  ParseReturn(var statement: IASTStatement): boolean;
+    function  ParseIf(var statement: IASTStatement): boolean;
     function  ParseStatement(var statement: IASTStatement): boolean;
     function  ParseTerm(var term: IASTTerm): boolean;
     procedure PushBack(token: TTokenKind; const ident: string);
@@ -72,7 +70,7 @@ end; { CreateSimpleDSLParser }
 { TSimpleDSLParser }
 
 function TSimpleDSLParser.FetchToken(allowed: TTokenKinds; var ident: string;
-  var token: TTokenKind; skipOver: TTokenKinds): boolean;
+  var token: TTokenKind): boolean;
 var
   loc: TPoint;
 begin
@@ -80,7 +78,7 @@ begin
   while GetToken(token, ident) do
     if token in allowed then
       Exit(true)
-    else if (token = tkWhitespace) or (token in skipOver) then
+    else if token = tkWhitespace then
       // do nothing
     else begin
       loc := FTokenizer.CurrentLocation;
@@ -257,10 +255,10 @@ var
 begin
   Result := false;
 
-  /// function = identifier "(" [ identifier { "," identifier } ] ")" NL block
+  /// function = identifier "(" [ identifier { "," identifier } ] ")" block
 
   // function name
-  if not FetchToken([tkIdent], funcName, token, [tkNewLine]) then
+  if not FetchToken([tkIdent], funcName, token) then
     Exit;
 
   func := AST.CreateFunction;

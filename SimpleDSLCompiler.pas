@@ -4,16 +4,16 @@ unit SimpleDSLCompiler;
 ///
 /// NL = #13#10
 ///
-/// program = {function NL}
+/// program = {function}
 ///
-/// function = identifier "(" [ identifier { "," identifier } ] ")" NL block
+/// function = identifier "(" [ identifier { "," identifier } ] ")" block
 ///
-/// block = statement NL
+/// block = { statement }
 ///
 /// statement = if
 ///           | return
 ///
-/// if = "if" expression NL block "else" NL block
+/// if = "if" expression block "else" block
 ///
 /// return = "return" expression
 ///
@@ -38,17 +38,21 @@ unit SimpleDSLCompiler;
 /// - Function without a "return" statement returns 0.
 ///
 /// Example:
-/// fib(i)
-///   if i < 2
+/// fib(i) {
+///   if i < 2 {
 ///     return 1
-///   else
+///   } else {
 ///     return fib(i-2) + fib(i-1)
+///   }
+/// }
 ///
-/// mult(a,b)
-///   if b < 2
+/// mult(a,b) {
+///   if b < 2 {
 ///     return a
-///   else
+///   } else {
 ///     return mult(a, b-1) + a
+///   }
+/// }
 
 interface
 
