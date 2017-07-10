@@ -8,7 +8,7 @@ uses
 
 type
   TTokenKind = (tkUnknown, tkNewLine, tkWhitespace,
-                tkIdent,
+                tkIdent, tkNumber,
                 tkLeftParen, tkRightParen,
                 tkLessThan, tkPlus, tkMinus, tkComma);
 
@@ -49,6 +49,7 @@ type
     function  CurrentLocation: TPoint; inline;
     function  GetChar(var ch: char): boolean;
     function  GetIdent: string;
+    function  GetNumber: string;
     function  GetToken(var kind: TTokenKind; var identifier: string): boolean;
     procedure Initialize(const code: string);
     function  IsAtEnd: boolean;
@@ -109,7 +110,7 @@ var
 begin
   Result := '';
   while GetChar(ch) do begin
-    if ch.IsLetter then
+    if ch.IsLetter or ch.IsNumber or (ch = '_') then
       Result := Result + ch
     else begin
       PushBack(ch);
@@ -117,6 +118,21 @@ begin
     end;
   end;
 end; { TSimpleDSLTokenizer.GetIdent }
+
+function TSimpleDSLTokenizer.GetNumber: string;
+var
+  ch: char;
+begin
+  Result := '';
+  while GetChar(ch) do begin
+    if CharInSet(ch, ['0'..'9']) then
+      Result := Result + ch
+    else begin
+      PushBack(ch);
+      Exit;
+    end;
+  end;
+end; { TSimpleDSLTokenizer.GetNumber }
 
 function TSimpleDSLTokenizer.GetToken(var kind: TTokenKind; var identifier: string): boolean;
 var
@@ -139,6 +155,10 @@ begin
     else if ch.IsLetter then begin
       kind := tkIdent;
       identifier := ch + GetIdent;
+    end
+    else if CharInSet(ch, ['0'..'9']) then begin
+      kind := tkNumber;
+      identifier := ch + GetNumber;
     end
     else if ch.IsWhiteSpace then begin
       kind := tkWhitespace;

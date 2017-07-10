@@ -104,8 +104,9 @@ type
   IASTFunctions = interface ['{95A0897F-ED13-40F5-B955-9917AC911EDB}']
     function  GetItems(idxFunction: integer): IASTFunction;
   //
-    function  Add(const funct: IASTFunction): integer;
+    function  Add(const func: IASTFunction): integer;
     function  Count: integer;
+    function  IndexOf(const name: string): integer;
     property Items[idxFunction: integer]: IASTFunction read GetItems; default;
   end; { IASTFunctions }
 
@@ -256,10 +257,11 @@ type
   strict protected
     function  GetItems(idxFunction: integer): IASTFunction; inline;
   public
-    function  Add(const funct: IASTFunction): integer;
+    function  Add(const func: IASTFunction): integer;
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
     function  Count: integer; inline;
+    function  IndexOf(const name: string): integer;
     property Items[idxFunction: integer]: IASTFunction read GetItems; default;
   end; { TASTFunctions }
 
@@ -475,9 +477,9 @@ end; { TASTFunction.SetParamNames }
 
 { TASTFunctions }
 
-function TASTFunctions.Add(const funct: IASTFunction): integer;
+function TASTFunctions.Add(const func: IASTFunction): integer;
 begin
-  Result := FFunctions.Add(funct);
+  Result := FFunctions.Add(func);
 end; { TASTFunctions.Add }
 
 procedure TASTFunctions.AfterConstruction;
@@ -501,6 +503,15 @@ function TASTFunctions.GetItems(idxFunction: integer): IASTFunction;
 begin
   Result := FFunctions[idxFunction];
 end; { TASTFunctions.GetItems }
+
+function TASTFunctions.IndexOf(const name: string): integer;
+begin
+  for Result := 0 to Count - 1 do
+    if SameText(Items[Result].Name, name) then
+      Exit;
+
+  Result := -1;
+end; { TASTFunctions.IndexOf }
 
 { TSimpleDSLASTMaker }
 

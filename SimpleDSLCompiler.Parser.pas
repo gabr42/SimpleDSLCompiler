@@ -29,8 +29,13 @@ type
   TTokenKinds = set of TTokenKind;
 
   TSimpleDSLParser = class(TSimpleDSLCompilerBase, ISimpleDSLParser)
-  strict private
+  strict private type
+    TContext = record
+      CurrentFunc   : IASTFunction;
+    end;
+  var
     FAST           : ISimpleDSLAST;
+    FContext       : TContext;
     FTokenizer     : ISimpleDSLTokenizer;
     FLookaheadToken: TTokenKind;
     FLookaheadIdent: string;
@@ -40,16 +45,16 @@ type
     function  FetchToken(allowed: TTokenKinds; var ident: string): boolean; overload; inline;
     function  FetchToken(allowed: TTokenKinds): boolean; overload; inline;
     function  GetToken(var token: TTokenKind; var ident: string): boolean;
-    function  IsFunction(const ident: string): boolean;
-    function  IsNumber(const ident: string): boolean;
-    function  IsVariable(const ident: string): boolean;
-    function ParseBlock(var block: IASTBlock): boolean;
-    function  ParseExpression(const expression: IASTExpression): boolean;
+    function  IsFunction(const ident: string; var funcIdx: integer): boolean;
+    function IsVariable(const ident: string; var varIdx: integer): boolean;
+    function  ParseBlock(var block: IASTBlock): boolean;
+    function  ParseExpresionList(parameters: TExpressionList): boolean;
+    function  ParseExpression(var expression: IASTExpression): boolean;
     function  ParseFunction: boolean;
-    function  ParseIf(const statement: IASTIfStatement): boolean;
-    function  ParseReturn(const statement: IASTReturnStatement): boolean;
-    function ParseStatement(var statement: IASTStatement): boolean;
-    function  ParseTerm(const term: IASTTerm): boolean;
+    function  ParseIf(var statement: IASTStatement): boolean;
+    function  ParseReturn(var statement: IASTStatement): boolean;
+    function  ParseStatement(var statement: IASTStatement): boolean;
+    function  ParseTerm(var term: IASTTerm): boolean;
     procedure PushBack(token: TTokenKind; const ident: string);
     property AST: ISimpleDSLAST read FAST;
   public
@@ -110,22 +115,18 @@ begin
     Result :=  FTokenizer.GetToken(token, ident);
 end; { TSimpleDSLParser.GetToken }
 
-function TSimpleDSLParser.IsFunction(const ident: string): boolean;
+function TSimpleDSLParser.IsFunction(const ident: string; var funcIdx: integer): boolean;
 begin
-  Result := false;
-  // TODO 1 Implement: TSimpleDSLParser.IsFunction
+  funcIdx := AST.Functions.IndexOf(ident);
+  Result := (funcIdx >= 0);
 end; { TSimpleDSLParser.IsFunction }
 
-function TSimpleDSLParser.IsNumber(const ident: string): boolean;
+function TSimpleDSLParser.IsVariable(const ident: string; var varIdx: integer): boolean;
 begin
-  Result := false;
-  // TODO 1 Implement: TSimpleDSLParser.IsNumber
-end; { TSimpleDSLParser.IsNumber }
+  Assert(assigned(FContext.CurrentFunc), 'TSimpleDSLParser.IsVariable: No active function');
 
-function TSimpleDSLParser.IsVariable(const ident: string): boolean;
-begin
-  Result := false;
-  // TODO 1 Implement: TSimpleDSLParser.IsVariable
+  varIdx := FContext.CurrentFunc.ParamNames.IndexOf(ident);
+  Result := (varIdx >= 0);
 end; { TSimpleDSLParser.IsVariable }
 
 function TSimpleDSLParser.Parse(const code: string; const tokenizer: ISimpleDSLTokenizer;
@@ -144,27 +145,69 @@ end; { TSimpleDSLParser.Parse }
 
 function TSimpleDSLParser.ParseBlock(var block: IASTBlock): boolean;
 var
+  blk      : IASTBlock;
   statement: IASTStatement;
 begin
   Result := false;
 
   /// block = statement NL
 
-  block := AST.CreateBlock;
+  blk := AST.CreateBlock;
 
   if not ParseStatement(statement) then
     Exit;
 
-  block.Statement := statement;
+  blk.Statement := statement;
 
   if not FetchToken([tkNewLine]) then
     Exit;
 
+  block := blk;
   Result := true;
 end; { TSimpleDSLParser.ParseBlock }
 
-function TSimpleDSLParser.ParseExpression(const expression: IASTExpression): boolean;
+function TSimpleDSLParser.ParseExpresionList(parameters: TExpressionList): boolean;
 var
+  expected: TTokenKinds;
+  expr    : IASTExpression;
+  ident   : string;
+  token   : TTokenKind;
+begin
+  Result := false;
+
+  /// "(" [expression { "," expression } ] ")"
+
+  if not FetchToken([tkLeftParen]) then
+    Exit;
+
+  expected := [tkRightParen];
+
+  // parameter list, including ")"
+  repeat
+    if FetchToken(expected, ident, token) then begin
+      if token = tkRightParen then
+        break; //repeat
+      // else - token = tkComma, parse next expression
+    end
+    else if expected = [tkRightParen] then
+      // only the first time around: not a ")" so try parsing it is an expression
+      PushBack(token, ident)
+    else
+      Exit;
+
+    Result := ParseExpression(expr);
+    if not Result then
+      Exit;
+
+    Include(expected, tkComma);
+  until false;
+
+  Result := true;
+end; { TSimpleDSLParser.ParseExpresionList }
+
+function TSimpleDSLParser.ParseExpression(var expression: IASTExpression): boolean;
+var
+  expr : IASTExpression;
   ident: string;
   term : IASTTerm;
   token: TTokenKind;
@@ -176,20 +219,30 @@ begin
   ///
   /// operator = "+" | "-" | "<"
 
+  expr := AST.CreateExpression;
+
   if not ParseTerm(term) then
     Exit;
+
+  expr.Term1 := term;
 
   if not FetchToken([tkLessThan, tkPlus, tkMinus], ident, token) then begin
     PushBack(token, ident);
-    // insert term into AST
-    Result := true;
-    Exit;
+    expr.BinaryOp := opNone;
+  end
+  else begin
+    case token of
+      tkLessThan: expr.BinaryOp := opCompareLess;
+      tkPlus:     expr.BinaryOp := opAdd;
+      tkMinus:    expr.BinaryOp := opSubtract;
+      else raise Exception.Create('TSimpleDSLParser.ParseExpression: Unexpected token');
+    end;
+    if not ParseTerm(term) then
+      Exit;
+    expr.Term2 := term;
   end;
 
-  if not ParseTerm(term) then
-    Exit;
-
-  // insert binary operation into AST
+  expression := expr;
   Result := true;
 end; { TSimpleDSLParser.ParseExpression }
 
@@ -213,46 +266,55 @@ begin
   func := AST.CreateFunction;
   func.Name := funcName;
 
-  // (
-  if not FetchToken([tkLeftParen]) then
-    Exit;
+  FContext.CurrentFunc := func;
+  try
 
-  // parameter list
-  expected := [tkIdent, tkRightParen];
-  repeat
-    if not FetchToken(expected, ident, token) then
+    // "("
+    if not FetchToken([tkLeftParen]) then
       Exit;
-    if token = tkRightParen then
-      break //repeat
-    else if token = tkIdent then begin
-      func.ParamNames.Add(ident);
-      expected := expected - [tkIdent] + [tkComma];
-    end
-    else if token = tkComma then
-      expected := expected + [tkIdent] - [tkComma]
-    else begin
-      LastError := 'Internal error in ParseFunction';
+
+    // parameter list, including ")"
+    expected := [tkIdent, tkRightParen];
+    repeat
+      if not FetchToken(expected, ident, token) then
+        Exit;
+      if token = tkRightParen then
+        break //repeat
+      else if token = tkIdent then begin
+        func.ParamNames.Add(ident);
+        expected := expected - [tkIdent] + [tkComma, tkRightParen];
+      end
+      else if token = tkComma then
+        expected := expected + [tkIdent] - [tkComma, tkRightParen]
+      else begin
+        LastError := 'Internal error in ParseFunction';
+        Exit;
+      end;
+    until false;
+
+    if not FetchToken([tkNewLine]) then
       Exit;
+
+    // function body
+    Result := ParseBlock(block);
+
+    if Result then begin
+      func.Body := block;
+      AST.Functions.Add(func);
     end;
-  until false;
 
-  if not FetchToken([tkNewLine]) then
-    Exit;
-
-  Result := ParseBlock(block);
-
-  if Result then begin
-    func.Body := block;
-    AST.Functions.Add(func);
+  finally
+    FContext.CurrentFunc := nil;
   end;
 end; { TSimpleDSLParser.ParseFunction }
 
-function TSimpleDSLParser.ParseIf(const statement: IASTIfStatement): boolean;
+function TSimpleDSLParser.ParseIf(var statement: IASTStatement): boolean;
 var
   condition: IASTExpression;
   elseBlock: IASTBlock;
   ident    : string;
   loc      : TPoint;
+  stmt     : IASTIfStatement;
   thenBlock: IASTBlock;
 begin
   Result := false;
@@ -284,24 +346,33 @@ begin
   if not ParseBlock(elseBlock) then
     Exit;
 
-  statement.Condition := condition;
-  statement.ThenBlock := thenBlock;
-  statement.ElseBlock := elseBlock;
+  stmt := AST.CreateStatement(stIf) as IASTIfStatement;
+  stmt.Condition := condition;
+  stmt.ThenBlock := thenBlock;
+  stmt.ElseBlock := elseBlock;
 
+  statement := stmt;
   Result := true;
 end; { TSimpleDSLParser.ParseIf }
 
-function TSimpleDSLParser.ParseReturn(const statement: IASTReturnStatement): boolean;
+function TSimpleDSLParser.ParseReturn(var statement: IASTStatement): boolean;
 var
   expression: IASTExpression;
+  stmt      : IASTReturnStatement;
 begin
+  Result := false;
+
   /// return = "return" expression
   /// ("return" was already parsed)
 
-  Result := ParseExpression(expression);
+  if not ParseExpression(expression) then
+    Exit;
 
-  if Result then
-    statement.Expression := expression;
+  stmt := Ast.CreateStatement(stReturn) as IASTReturnStatement;
+  stmt.Expression := expression;
+
+  statement := stmt;
+  Result := true;
 end; { TSimpleDSLParser.ParseReturn }
 
 function TSimpleDSLParser.ParseStatement(var statement: IASTStatement): boolean;
@@ -317,24 +388,26 @@ begin
   if not FetchToken([tkIdent], ident) then
     Exit;
 
-  if SameText(ident, 'if') then begin
-    statement := AST.CreateStatement(stIf);
-    Result := ParseIf(statement as IASTIfStatement);
-  end
-  else if SameText(ident, 'return') then begin
-    statement := Ast.CreateStatement(stReturn);
-    Result := ParseReturn(statement as IASTReturnStatement);
-  end
+  if SameText(ident, 'if') then
+    Result := ParseIf(statement)
+  else if SameText(ident, 'return') then
+    Result := ParseReturn(statement)
   else begin
     loc := FTokenizer.CurrentLocation;
     LastError := Format('Invalid reserved word %s in line %d, column %d', [ident, loc.X, loc.Y]);
   end;
 end; { TSimpleDSLParser.ParseStatement }
 
-function TSimpleDSLParser.ParseTerm(const term: IASTTerm): boolean;
+function TSimpleDSLParser.ParseTerm(var term: IASTTerm): boolean;
 var
-  ident: string;
-  loc  : TPoint;
+  constant: IASTTermConstant;
+  funcCall: IASTTermFunctionCall;
+  funcIdx : integer;
+  ident   : string;
+  loc     : TPoint;
+  token   : TTokenKind;
+  variable: IASTTermVariable;
+  varIdx  : integer;
 begin
   Result := false;
 
@@ -344,17 +417,31 @@ begin
   ///
   /// function_call = identifier "(" [expression { "," expression } ] ")"
 
-  if not FetchToken([tkIdent], ident) then
+  if not FetchToken([tkIdent, tkNumber], ident, token) then
     Exit;
 
-  // TODO 1 -oPrimoz Gabrijelcic : *** continue here ***
-
-  if IsFunction(ident) then
-    // parse function call
-  else if IsNumber(ident) then
+  if token = tkNumber then begin
     // parse numeric constant
-  else if IsVariable(ident) then
+    constant := AST.CreateTerm(termConstant) as IASTTermConstant;
+    constant.Value := StrToInt(ident);
+    term := constant;
+    Result := true;
+  end
+  else if IsFunction(ident, funcIdx) then begin
+    // parse function call
+    funcCall := AST.CreateTerm(termFunctionCall) as IASTTermFunctionCall;
+    funcCall.FunctionIdx := funcIdx;
+    Result := ParseExpresionList(funcCall.Parameters);
+    if Result then
+      term := funcCall;
+  end
+  else if IsVariable(ident, varIdx) then begin
     // parse variable
+    variable := AST.CreateTerm(termVariable) as IASTTermVariable;
+    variable.VariableIdx := varIdx;
+    term := variable;
+    Result := true;
+  end
   else begin
     loc := FTokenizer.CurrentLocation;
     LastError := Format('Unexpected token in line %d, column %d (not a number, variable, or function)', [loc.X, loc.Y]);
