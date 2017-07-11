@@ -68,24 +68,17 @@ type
     function  GetASTFactory: TSimpleDSLASTFactory;
     function  GetCodegenFactory: TSimpleDSLCodegenFactory;
     function  GetParserFactory: TSimpleDSLParserFactory;
-    function  GetProgramFactory: TSimpleDSLProgramFactory;
     function  GetTokenizerFactory: TSimpleDSLTokenizerFactory;
     procedure SetASTFactory(const value: TSimpleDSLASTFactory);
     procedure SetCodegenFactory(const value: TSimpleDSLCodegenFactory);
     procedure SetParserFactory(const value: TSimpleDSLParserFactory);
-    procedure SetProgramFactory(const value: TSimpleDSLProgramFactory);
     procedure SetTokenizerFactory(const value: TSimpleDSLTokenizerFactory);
   //
     function Compile(const code: string): ISimpleDSLProgram;
     property ASTFactory: TSimpleDSLASTFactory read GetASTFactory write SetASTFactory;
-    property CodegenFactory: TSimpleDSLCodegenFactory read GetCodegenFactory write
-      SetCodegenFactory;
-    property ParserFactory: TSimpleDSLParserFactory read GetParserFactory write
-      SetParserFactory;
-    property ProgramFactory: TSimpleDSLProgramFactory read GetProgramFactory write
-      SetProgramFactory;
-    property TokenizerFactory: TSimpleDSLTokenizerFactory read GetTokenizerFactory write
-      SetTokenizerFactory;
+    property CodegenFactory: TSimpleDSLCodegenFactory read GetCodegenFactory write SetCodegenFactory;
+    property ParserFactory: TSimpleDSLParserFactory read GetParserFactory write SetParserFactory;
+    property TokenizerFactory: TSimpleDSLTokenizerFactory read GetTokenizerFactory write SetTokenizerFactory;
   end; { TSimpleDSLCompiler }
 
 function CreateSimpleDSLCompiler: ISimpleDSLCompiler;
@@ -102,31 +95,23 @@ type
     FASTFactory    : TSimpleDSLASTFactory;
     FCodegenFactory: TSimpleDSLCodegenFactory;
     FParserFactory : TSimpleDSLParserFactory;
-    FProgramFactory: TSimpleDSLProgramFactory;
     FTokenizerFactory: TSimpleDSLTokenizerFactory;
   strict protected
     function  GetASTFactory: TSimpleDSLASTFactory; inline;
     function  GetCodegenFactory: TSimpleDSLCodegenFactory; inline;
     function  GetParserFactory: TSimpleDSLParserFactory; inline;
-    function  GetProgramFactory: TSimpleDSLProgramFactory; inline;
     function  GetTokenizerFactory: TSimpleDSLTokenizerFactory; inline;
     procedure SetASTFactory(const value: TSimpleDSLASTFactory); inline;
     procedure SetCodegenFactory(const value: TSimpleDSLCodegenFactory); inline;
     procedure SetParserFactory(const value: TSimpleDSLParserFactory); inline;
-    procedure SetProgramFactory(const value: TSimpleDSLProgramFactory); inline;
     procedure SetTokenizerFactory(const value: TSimpleDSLTokenizerFactory); inline;
   public
     constructor Create;
     function  Compile(const code: string): ISimpleDSLProgram;
     property ASTFactory: TSimpleDSLASTFactory read GetASTFactory write SetASTFactory;
-    property CodegenFactory: TSimpleDSLCodegenFactory read GetCodegenFactory write
-      SetCodegenFactory;
-    property ParserFactory: TSimpleDSLParserFactory read GetParserFactory write
-      SetParserFactory;
-    property ProgramFactory: TSimpleDSLProgramFactory read GetProgramFactory write
-      SetProgramFactory;
-    property TokenizerFactory: TSimpleDSLTokenizerFactory read GetTokenizerFactory write
-      SetTokenizerFactory;
+    property CodegenFactory: TSimpleDSLCodegenFactory read GetCodegenFactory write SetCodegenFactory;
+    property ParserFactory: TSimpleDSLParserFactory read GetParserFactory write SetParserFactory;
+    property TokenizerFactory: TSimpleDSLTokenizerFactory read GetTokenizerFactory write SetTokenizerFactory;
   end; { TSimpleDSLCompiler }
 
 { exports }
@@ -144,7 +129,6 @@ begin
   ASTFactory := CreateSimpleDSLAST;
   CodegenFactory := CreateSimpleDSLCodegen;
   ParserFactory := CreateSimpleDSLParser;
-  ProgramFactory := CreateSimpleDSLProgram;
   TokenizerFactory := CreateSimpleDSLTokenizer;
 end; { TSimpleDSLCompiler.Create }
 
@@ -163,7 +147,6 @@ begin
     LastError := (parser as ISimpleDSLErrorInfo).ErrorInfo
   else begin
     codegen := CodegenFactory();
-    Result := ProgramFactory();
     if not codegen.Generate(ast, Result) then
       LastError := (codegen as ISimpleDSLErrorInfo).ErrorInfo;
   end;
@@ -184,11 +167,6 @@ begin
   Result := FParserFactory;
 end; { TSimpleDSLCompiler.GetParserFactory }
 
-function TSimpleDSLCompiler.GetProgramFactory: TSimpleDSLProgramFactory;
-begin
-  Result := FProgramFactory;
-end; { TSimpleDSLCompiler.GetProgramFactory }
-
 function TSimpleDSLCompiler.GetTokenizerFactory: TSimpleDSLTokenizerFactory;
 begin
   Result := FTokenizerFactory;
@@ -208,11 +186,6 @@ procedure TSimpleDSLCompiler.SetParserFactory(const value: TSimpleDSLParserFacto
 begin
   FParserFactory := value;
 end; { TSimpleDSLCompiler.SetParserFactory }
-
-procedure TSimpleDSLCompiler.SetProgramFactory(const value: TSimpleDSLProgramFactory);
-begin
-  FProgramFactory := value;
-end; { TSimpleDSLCompiler.SetProgramFactory }
 
 procedure TSimpleDSLCompiler.SetTokenizerFactory(const value: TSimpleDSLTokenizerFactory);
 begin
