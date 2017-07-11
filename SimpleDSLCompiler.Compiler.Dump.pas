@@ -1,11 +1,11 @@
-unit SimpleDSLCompiler.Codegen.Dump;
+unit SimpleDSLCompiler.Compiler.Dump;
 
 interface
 
 uses
   System.Classes,
   SimpleDSLCompiler.AST,
-  SimpleDSLCompiler.Codegen;
+  SimpleDSLCompiler.Compiler;
 
 function CreateSimpleDSLCodegenDump(dump: TStringList): ISimpleDSLCodegen;
 
@@ -38,7 +38,7 @@ type
     procedure WritelnText(const s: string = '');
   public
     constructor Create(dump: TStringList);
-    function  Generate(const ast: ISimpleDSLAST; const runnable: ISimpleDSLProgram): boolean;
+    function  Generate(const ast: ISimpleDSLAST; var runnable: ISimpleDSLProgram): boolean;
   end; { TSimpleDSLCodegenDump }
 
 { externals }
@@ -82,8 +82,6 @@ begin
 end; { TSimpleDSLCodegenDump.DumpExpression }
 
 procedure TSimpleDSLCodegenDump.DumpFunction(const func: IASTFunction);
-var
-  s: string;
 begin
   FCurrentFunc := func;
   WritelnText(Format('%s(%s)', [func.Name, ''.Join(',', func.ParamNames.ToArray)]));
@@ -164,7 +162,7 @@ begin
 end; { TSimpleDSLCodegenDump.DumpTerm }
 
 function TSimpleDSLCodegenDump.Generate(const ast: ISimpleDSLAST;
-  const runnable: ISimpleDSLProgram): boolean;
+  var runnable: ISimpleDSLProgram): boolean;
 var
   i: integer;
 begin

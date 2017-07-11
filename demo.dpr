@@ -12,11 +12,11 @@ uses
   SimpleDSLCompiler.Parser in 'SimpleDSLCompiler.Parser.pas',
   SimpleDSLCompiler.AST in 'SimpleDSLCompiler.AST.pas',
   SimpleDSLCompiler.Runnable in 'SimpleDSLCompiler.Runnable.pas',
-  SimpleDSLCompiler.Codegen in 'SimpleDSLCompiler.Codegen.pas',
+  SimpleDSLCompiler.Compiler in 'SimpleDSLCompiler.Compiler.pas',
   SimpleDSLCompiler.ErrorInfo in 'SimpleDSLCompiler.ErrorInfo.pas',
   SimpleDSLCompiler.Base in 'SimpleDSLCompiler.Base.pas',
   SimpleDSLCompiler.Tokenizer in 'SimpleDSLCompiler.Tokenizer.pas',
-  SimpleDSLCompiler.Codegen.Dump in 'SimpleDSLCompiler.Codegen.Dump.pas';
+  SimpleDSLCompiler.Compiler.Dump in 'SimpleDSLCompiler.Compiler.Dump.pas';
 
 type
   TParams = TArray<integer>;
