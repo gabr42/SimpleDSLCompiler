@@ -16,7 +16,8 @@ uses
   SimpleDSLCompiler.ErrorInfo in 'SimpleDSLCompiler.ErrorInfo.pas',
   SimpleDSLCompiler.Base in 'SimpleDSLCompiler.Base.pas',
   SimpleDSLCompiler.Tokenizer in 'SimpleDSLCompiler.Tokenizer.pas',
-  SimpleDSLCompiler.Compiler.Dump in 'SimpleDSLCompiler.Compiler.Dump.pas';
+  SimpleDSLCompiler.Compiler.Dump in 'SimpleDSLCompiler.Compiler.Dump.pas',
+  SimpleDSLCompiler.Compiler.Codegen in 'SimpleDSLCompiler.Compiler.Codegen.pas';
 
 type
   TParams = TArray<integer>;
@@ -151,7 +152,7 @@ var
 const
   CMultiProcCode =
     'fib(i) {                       '#13#10 +
-    '  if i < 2 {                   '#13#10 +
+    '  if i < 3 {                   '#13#10 +
     '    return 1                   '#13#10 +
     '  } else {                     '#13#10 +
     '    return fib(i-2) + fib(i-1) '#13#10 +

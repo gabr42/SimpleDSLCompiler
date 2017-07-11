@@ -448,7 +448,7 @@ end; { TASTFunction.BeforeDestruction }
 function TASTFunction.GetBody: IASTBlock;
 begin
   Result := FBody;
-end;
+end; { TASTFunction.GetBody }
 
 function TASTFunction.GetName: string;
 begin
