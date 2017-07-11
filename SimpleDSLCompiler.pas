@@ -2,8 +2,6 @@ unit SimpleDSLCompiler;
 
 /// DSL definition
 ///
-/// NL = #13#10
-///
 /// program = {function}
 ///
 /// function = identifier "(" [ identifier { "," identifier } ] ")" block

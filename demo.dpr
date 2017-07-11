@@ -8,6 +8,7 @@ uses
   System.SysUtils,
   System.Classes,
   System.Generics.Collections,
+  DSiWin32,
   SimpleDSLCompiler in 'SimpleDSLCompiler.pas',
   SimpleDSLCompiler.Parser in 'SimpleDSLCompiler.Parser.pas',
   SimpleDSLCompiler.AST in 'SimpleDSLCompiler.AST.pas',
@@ -166,6 +167,17 @@ const
     '  }                            '#13#10 +
     '}                              '#13#10;
 
+function fib(i: integer): integer;
+begin
+  if i < 3 then
+    Result := 1
+  else
+    Result := fib(i-2) + fib(i-1);
+end;
+
+var
+  time: int64;
+
 begin
   SetLength(functions, 2);
 
@@ -249,6 +261,18 @@ begin
       else
         Writeln('mult: ' + (exec as ISimpleDSLErrorInfo).ErrorInfo);
     end;
+
+    writeln(fib(7));
+
+    time := DSiTimeGetTime64;
+    res := fib(30);
+    time := DSiElapsedTime64(time);
+    Writeln(res, ' in ', time, ' ms');
+
+    time := DSiTimeGetTime64;
+    exec.Call('fib', [30], res);
+    time := DSiElapsedTime64(time);
+    Writeln(res, ' in ', time, ' ms');
 
     Readln;
   except
