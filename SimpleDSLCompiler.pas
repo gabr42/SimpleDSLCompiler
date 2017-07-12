@@ -63,6 +63,7 @@ uses
 
 type
   ISimpleDSLCompiler = interface ['{7CF78EC7-023B-4571-B310-42873921B0BC}']
+    function  GetAST: ISimpleDSLAST;
     function  GetASTFactory: TSimpleDSLASTFactory;
     function  GetCodegenFactory: TSimpleDSLCodegenFactory;
     function  GetParserFactory: TSimpleDSLParserFactory;
@@ -73,6 +74,7 @@ type
     procedure SetTokenizerFactory(const value: TSimpleDSLTokenizerFactory);
   //
     function Compile(const code: string): ISimpleDSLProgram;
+    property AST: ISimpleDSLAST read GetAST;
     property ASTFactory: TSimpleDSLASTFactory read GetASTFactory write SetASTFactory;
     property CodegenFactory: TSimpleDSLCodegenFactory read GetCodegenFactory write SetCodegenFactory;
     property ParserFactory: TSimpleDSLParserFactory read GetParserFactory write SetParserFactory;
@@ -90,11 +92,13 @@ uses
 type
   TSimpleDSLCompiler = class(TSimpleDSLCompilerBase, ISimpleDSLCompiler)
   strict private
-    FASTFactory    : TSimpleDSLASTFactory;
-    FCodegenFactory: TSimpleDSLCodegenFactory;
-    FParserFactory : TSimpleDSLParserFactory;
+    FAST             : ISimpleDSLAST;
+    FASTFactory      : TSimpleDSLASTFactory;
+    FCodegenFactory  : TSimpleDSLCodegenFactory;
+    FParserFactory   : TSimpleDSLParserFactory;
     FTokenizerFactory: TSimpleDSLTokenizerFactory;
   strict protected
+    function  GetAST: ISimpleDSLAST;
     function  GetASTFactory: TSimpleDSLASTFactory; inline;
     function  GetCodegenFactory: TSimpleDSLCodegenFactory; inline;
     function  GetParserFactory: TSimpleDSLParserFactory; inline;
@@ -106,6 +110,7 @@ type
   public
     constructor Create;
     function  Compile(const code: string): ISimpleDSLProgram;
+    property AST: ISimpleDSLAST read GetAST;
     property ASTFactory: TSimpleDSLASTFactory read GetASTFactory write SetASTFactory;
     property CodegenFactory: TSimpleDSLCodegenFactory read GetCodegenFactory write SetCodegenFactory;
     property ParserFactory: TSimpleDSLParserFactory read GetParserFactory write SetParserFactory;
@@ -132,7 +137,6 @@ end; { TSimpleDSLCompiler.Create }
 
 function TSimpleDSLCompiler.Compile(const code: string): ISimpleDSLProgram;
 var
-  ast      : ISimpleDSLAST;
   codegen  : ISimpleDSLCodegen;
   parser   : ISimpleDSLParser;
   tokenizer: ISimpleDSLTokenizer;
@@ -140,15 +144,22 @@ begin
   LastError := '';
   parser := ParserFactory();
   tokenizer := TokenizerFactory();
-  ast := ASTFactory();
-  if not parser.Parse(code, tokenizer, ast) then
-    LastError := (parser as ISimpleDSLErrorInfo).ErrorInfo
+  FAST := ASTFactory();
+  if not parser.Parse(code, tokenizer, FAST) then begin
+    FAST := nil;
+    LastError := (parser as ISimpleDSLErrorInfo).ErrorInfo;
+  end
   else begin
     codegen := CodegenFactory();
-    if not codegen.Generate(ast, Result) then
+    if not codegen.Generate(FAST, Result) then
       LastError := (codegen as ISimpleDSLErrorInfo).ErrorInfo;
   end;
 end; { TSimpleDSLCompiler.Compile }
+
+function TSimpleDSLCompiler.GetAST: ISimpleDSLAST;
+begin
+  Result := FAST;
+end; { TSimpleDSLCompiler.GetAST }
 
 function TSimpleDSLCompiler.GetASTFactory: TSimpleDSLASTFactory;
 begin
