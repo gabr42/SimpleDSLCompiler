@@ -63,6 +63,7 @@ begin
     begin
       context.Exec := execContext;
       context.Params := params;
+      context.Result := 0;
       block(context);
       Result := context.Result;
     end;

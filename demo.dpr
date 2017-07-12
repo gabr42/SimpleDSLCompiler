@@ -18,7 +18,8 @@ uses
   SimpleDSLCompiler.Base in 'SimpleDSLCompiler.Base.pas',
   SimpleDSLCompiler.Tokenizer in 'SimpleDSLCompiler.Tokenizer.pas',
   SimpleDSLCompiler.Compiler.Dump in 'SimpleDSLCompiler.Compiler.Dump.pas',
-  SimpleDSLCompiler.Compiler.Codegen in 'SimpleDSLCompiler.Compiler.Codegen.pas';
+  SimpleDSLCompiler.Compiler.Codegen in 'SimpleDSLCompiler.Compiler.Codegen.pas',
+  SimpleDSLCompiler.Interpreter in 'SimpleDSLCompiler.Interpreter.pas';
 
 const
   CMultiProcCode =
@@ -38,11 +39,12 @@ const
     '}                              '#13#10;
 
 var
-  compiler: ISimpleDSLCompiler;
-  exec    : ISimpleDSLProgram;
-  res     : integer;
-  sl      : TStringList;
-  time    : int64;
+  compiler   : ISimpleDSLCompiler;
+  exec       : ISimpleDSLProgram;
+  interpreter: ISimpleDSLProgram;
+  res        : integer;
+  sl         : TStringList;
+  time       : int64;
 
 function fib(i: integer): integer;
 begin
@@ -68,27 +70,36 @@ begin
     if not assigned(exec) then
       Writeln('Compilation/codegen error: ' + (compiler as ISimpleDSLErrorInfo).ErrorInfo)
     else begin
-      if exec.Call('fib', [7], res) then
-        Writeln('fib(7) = ', res)
-      else
-        Writeln('fib: ' + (exec as ISimpleDSLErrorInfo).ErrorInfo);
       if exec.Call('mult', [5,3], res) then
         Writeln('mult(5,3) = ', res)
       else
         Writeln('mult: ' + (exec as ISimpleDSLErrorInfo).ErrorInfo);
+
+      Writeln(fib(7));
+      exec.Call('fib', [7], res);
+      Writeln(res);
+
+      time := DSiTimeGetTime64;
+      res := fib(30);
+      time := DSiElapsedTime64(time);
+      Writeln('Native: ', res, ' in ', time, ' ms');
+
+      time := DSiTimeGetTime64;
+      res := 0;
+      exec.Call('fib', [30], res);
+      time := DSiElapsedTime64(time);
+      Writeln('Compiled: ', res, ' in ', time, ' ms');
+
+      interpreter := CreateSimpleDSLInterpreter(compiler.AST);
+      time := DSiTimeGetTime64;
+      res := 0;
+      if not interpreter.Call('fib', [30], res) then
+        Writeln('interpreter: ' + (interpreter as ISimpleDSLErrorInfo).ErrorInfo)
+      else begin
+        time := DSiElapsedTime64(time);
+        Writeln('Interpreted: ', res, ' in ', time, ' ms');
+      end;
     end;
-
-    writeln(fib(7));
-
-    time := DSiTimeGetTime64;
-    res := fib(30);
-    time := DSiElapsedTime64(time);
-    Writeln(res, ' in ', time, ' ms');
-
-    time := DSiTimeGetTime64;
-    exec.Call('fib', [30], res);
-    time := DSiElapsedTime64(time);
-    Writeln(res, ' in ', time, ' ms');
 
     Readln;
   except

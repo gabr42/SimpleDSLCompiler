@@ -42,7 +42,7 @@ type
   public
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
-    function  Call(const func: string; const params: TParameters; var return: integer): boolean;
+    function  Call(const functionName: string; const params: TParameters; var return: integer): boolean;
     procedure DeclareFunction(idx: integer; const name: string; const code: TFunction);
   end; { TSimpleDSLProgram }
 
@@ -87,7 +87,7 @@ begin
   inherited;
 end; { TSimpleDSLProgram.BeforeDestruction }
 
-function TSimpleDSLProgram.Call(const func: string; const params: TParameters;
+function TSimpleDSLProgram.Call(const functionName: string; const params: TParameters;
   var return: integer): boolean;
 var
   context : TExecContext;
@@ -95,7 +95,7 @@ var
 begin
   Result := false;
   for funcInfo in FFunctions do begin
-    if SameText(func, funcInfo.Name) then begin
+    if SameText(functionName, funcInfo.Name) then begin
       SetupContext(context);
       return := funcInfo.Code(@context, params);
       Exit(true);
@@ -162,10 +162,7 @@ begin
       opAdd:         codeExpression := CodegenAdd(term1, term2);
       opSubtract:    codeExpression := CodegenSubtract(term1, term2);
       opCompareLess: codeExpression := CodegenIsLess(term1, term2);
-      else begin
-        LastError := '*** Unexpected operator';
-        Result := false;
-      end;
+      else           Result := SetError('*** Unexpected operator');
     end;
   end;
 end; { TSimpleDSLCodegen.CompileExpression }
@@ -237,10 +234,8 @@ begin
     Result := CompileIfStatement(stmIf, codeStatement)
   else if Supports(astStatement, IASTReturnStatement, stmReturn) then
     Result := CompileReturnStatement(stmReturn, codeStatement)
-  else begin
-    LastError := '*** Unknown statement';
-    Result := false;
-  end;
+  else
+    Result := SetError('*** Unknown statement');
 end; { TSimpleDSLCodegen.CompileStatement }
 
 function TSimpleDSLCodegen.CompileTerm(const astTerm: IASTTerm; var codeTerm:
@@ -257,10 +252,8 @@ begin
     codeTerm := CodegenVariable(termVar.VariableIdx)
   else if Supports(astTerm, IASTTermFunctionCall, termFuncCall) then
     Result := CompileFunctionCall(termFuncCall, codeTerm)
-  else begin
-    LastError := '*** Unexpected term';
-    Result := false;
-  end;
+  else
+    Result := SetError('*** Unexpected term');
 end; { TSimpleDSLCodegen.CompileTerm }
 
 function TSimpleDSLCodegen.Generate(const ast: ISimpleDSLAST; var runnable:

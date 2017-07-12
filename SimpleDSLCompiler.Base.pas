@@ -9,10 +9,9 @@ type
   TSimpleDSLCompilerBase = class(TInterfacedObject, ISimpleDSLErrorInfo)
   strict private
     FLastError: string;
-  strict protected
-    procedure SetLastError(const value: string);
   protected
-    property LastError: string read FLastError write SetLastError;
+    function  SetError(const error: string): boolean;
+    property LastError: string read FLastError write FLastError;
   public
     function  ErrorInfo: string;
   end; { TSimpleDSLCompilerBase }
@@ -24,9 +23,10 @@ begin
   Result := FLastError;
 end; { TSimpleDSLCompilerBase.ErrorInfo }
 
-procedure TSimpleDSLCompilerBase.SetLastError(const value: string);
+function TSimpleDSLCompilerBase.SetError(const error: string): boolean;
 begin
-  FLastError := value;
-end;
+  FLastError := error;
+  Result := false;
+end; { TSimpleDSLCompilerBase.SetError }
 
 end.
