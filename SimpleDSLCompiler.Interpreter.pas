@@ -83,8 +83,16 @@ end; { TSimpleDSLInterpreter.CallFunction }
 
 function TSimpleDSLInterpreter.EvalBlock(var context: TContext; const block: IASTBlock):
   boolean;
+var
+  statement: IASTStatement;
 begin
-  Result := EvalStatement(context, block.Statement);
+  Result := false;
+
+  for statement in block.Statements do
+    if not EvalStatement(context, statement) then
+      Exit;
+
+  Result := true;
 end; { TSimpleDSLInterpreter.EvalBlock }
 
 function TSimpleDSLInterpreter.EvalExpression(var context: TContext; const expression:

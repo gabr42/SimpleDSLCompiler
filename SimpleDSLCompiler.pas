@@ -6,7 +6,7 @@ unit SimpleDSLCompiler;
 ///
 /// function = identifier "(" [ identifier { "," identifier } ] ")" block
 ///
-/// block = { statement }
+/// block = { statement {";" statement} [";"] }
 ///
 /// statement = if
 ///           | return

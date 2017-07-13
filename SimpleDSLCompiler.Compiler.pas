@@ -130,14 +130,21 @@ function TSimpleDSLCodegen.CompileBlock(const astBlock: IASTBlock; var codeBlock
   TStatement): boolean;
 var
   codeStatement: TStatement;
+  iStatement   : integer;
   statements   : TStatements;
 begin
-  Result := CompileStatement(astBlock.Statement, codeStatement);
-  if Result then begin
-    SetLength(statements, 1);
-    statements[0] := codeStatement;
-    codeBlock := CodegenBlock(statements);
+  Result := false;
+
+  SetLength(statements, astBlock.Statements.Count);
+  for iStatement := 0 to astBlock.Statements.Count - 1 do begin
+    if not CompileStatement(astBlock.Statements[iStatement], codeStatement) then
+      Exit;
+    statements[iStatement] := codeStatement;
   end;
+
+  codeBlock := CodegenBlock(statements);
+
+  Result := true;
 end; { TSimpleDSLCodegen.CompileBlock }
 
 function TSimpleDSLCodegen.CompileExpression(const astExpression: IASTExpression;

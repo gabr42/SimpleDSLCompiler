@@ -80,11 +80,12 @@ type
     property Expression: IASTExpression read GetExpression write SetExpression;
   end; { IASTReturnStatement }
 
+  TStatementList = TList<IASTStatement>;
+
   IASTBlock = interface ['{450D40D0-4866-4CD2-98E8-88387F5B9904}']
-    function  GetStatement: IASTStatement;
-    procedure SetStatement(const value: IASTStatement);
+    function  GetStatements: TStatementList;
   //
-    property Statement: IASTStatement read GetStatement write SetStatement;
+    property Statements: TStatementList read GetStatements;
   end; { IASTBlock }
 
   TParameterList = TList<string>;
@@ -223,12 +224,13 @@ type
 
   TASTBlock = class(TInterfacedObject, IASTBlock)
   strict private
-    FStatement: IASTStatement;
+    FStatements: TStatementList;
   strict protected
-    function  GetStatement: IASTStatement;
-    procedure SetStatement(const value: IASTStatement);
+    function  GetStatements: TStatementList; inline;
   public
-    property Statement: IASTStatement read GetStatement write SetStatement;
+    procedure AfterConstruction; override;
+    procedure BeforeDestruction; override;
+    property Statements: TStatementList read GetStatements;
   end; { IASTBlock }
 
   TASTFunction = class(TInterfacedObject, IASTFunction)
@@ -421,15 +423,22 @@ end; { TASTReturnStatement.SetExpression }
 
 { TASTBlock }
 
-function TASTBlock.GetStatement: IASTStatement;
+procedure TASTBlock.AfterConstruction;
 begin
-  Result := FStatement;
-end; { TASTBlock.GetStatement }
+  inherited;
+  FStatements := TStatementList.Create;
+end; { TASTBlock.AfterConstruction }
 
-procedure TASTBlock.SetStatement(const value: IASTStatement);
+procedure TASTBlock.BeforeDestruction;
 begin
-  FStatement := value;
-end; { TASTBlock.SetStatement }
+  FreeAndNil(FStatements);
+  inherited;
+end; { TASTBlock.BeforeDestruction }
+
+function TASTBlock.GetStatements: TStatementList;
+begin
+  Result := FStatements;
+end; { TASTBlock.GetStatements }
 
 { TASTFunction }
 

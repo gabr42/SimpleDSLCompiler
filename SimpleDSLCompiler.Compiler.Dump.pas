@@ -57,9 +57,17 @@ begin
 end; { TSimpleDSLCodegenDump.Create }
 
 procedure TSimpleDSLCodegenDump.DumpBlock(const indent: string; const block: IASTBlock);
+var
+  iStatement: integer;
 begin
   WriteText(indent); WritelnText('{');
-  DumpStatement(indent + '  ', block.Statement);
+  for iStatement := 0 to block.Statements.Count - 1 do begin
+    DumpStatement(indent + '  ', block.Statements[iStatement]);
+    if iStatement < (block.Statements.Count - 1) then
+      WritelnText(';')
+    else
+      WritelnText;
+  end;
   WriteText(indent); WritelnText('}');
 end; { TSimpleDSLCodegenDump.DumpBlock }
 
@@ -124,7 +132,6 @@ begin
   WriteText(indent);
   WriteText('return ');
   DumpExpression(statement.Expression);
-  WritelnText;
 end; { TSimpleDSLCodegenDump.DumpReturnStatement }
 
 procedure TSimpleDSLCodegenDump.DumpStatement(const indent: string;
@@ -138,8 +145,9 @@ begin
   else if Supports(statement, IASTReturnStatement, stmReturn) then
     DumpReturnStatement(indent, stmReturn)
   else begin
-    Writeln('*** Unknown statement');
+    WritelnText('*** Unknown statement');
     FErrors := true;
+    Exit;
   end;
 end; { TSimpleDSLCodegenDump.DumpStatement }
 

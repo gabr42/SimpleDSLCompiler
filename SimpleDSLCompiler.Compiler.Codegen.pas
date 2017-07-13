@@ -78,8 +78,8 @@ begin
     end;
 end;
 
-function CodegenIfStatement(const condition: TExpression; const thenBlock, elseBlock:
-  TStatement): TStatement;
+function CodegenIfStatement(const condition: TExpression; const thenBlock,
+  elseBlock: TStatement): TStatement;
 begin
   Result :=
     procedure (var context: TContext)

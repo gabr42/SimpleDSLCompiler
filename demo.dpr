@@ -101,6 +101,7 @@ begin
       end;
     end;
 
+    Write('> ');
     Readln;
   except
     on E: Exception do

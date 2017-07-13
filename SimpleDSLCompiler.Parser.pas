@@ -144,23 +144,41 @@ end; { TSimpleDSLParser.Parse }
 
 function TSimpleDSLParser.ParseBlock(var block: IASTBlock): boolean;
 var
-  statement: IASTStatement;
+  ident     : string;
+  statement : IASTStatement;
+  statements: TStatementList;
+  token     : TTokenKind;
 begin
   Result := false;
 
-  /// block = { statement }
+  /// block = { statement {";" statement} [";"] }
 
-  if not FetchToken([tkLeftCurly]) then
-    Exit;
+  statements := TStatementList.Create;
 
-  if not ParseStatement(statement) then
-    Exit;
+  try
+    if not FetchToken([tkLeftCurly]) then
+      Exit;
 
-  if not FetchToken([tkRightCurly]) then
-    Exit;
+    repeat
+      if not ParseStatement(statement) then
+        Exit;
 
-  block := AST.CreateBlock;
-  block.Statement := statement;
+      statements.Add(statement);
+
+      if not FetchToken([tkSemicolon, tkRightCurly], ident, token) then
+        Exit;
+
+      if token = tkSemicolon then begin
+        // semicolon doesn't automatically force new statement; it may be followed by a curly right brace
+        if not FetchToken([tkRightCurly], ident, token) then
+          PushBack(token, ident);
+      end;
+    until token = tkRightCurly;
+
+    block := AST.CreateBlock;
+    for statement in statements do
+      block.Statements.Add(statement);
+  finally FreeAndNil(statements); end;
   Result := true;
 end; { TSimpleDSLParser.ParseBlock }
 
