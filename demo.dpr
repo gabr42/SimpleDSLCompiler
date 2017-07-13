@@ -65,11 +65,10 @@ begin
     finally FreeAndNil(sl); end;
 
     compiler := CreateSimpleDSLCompiler;
-    exec := compiler.Compile(CMultiProcCode);
-
-    if not assigned(exec) then
+    if not compiler.Compile(CMultiProcCode) then
       Writeln('Compilation/codegen error: ' + (compiler as ISimpleDSLErrorInfo).ErrorInfo)
     else begin
+      exec := compiler.Code;
       if exec.Call('mult', [5,3], res) then
         Writeln('mult(5,3) = ', res)
       else
