@@ -30,7 +30,7 @@ unit SimpleDSLCompiler;
 /// - Only data type is integer.
 /// - "If" executes "then" block if expression is <> 0 and "else" block if expression = 0.
 /// - There is no assignment.
-/// - A block can only contain one statement
+/// - Only operations are: +, -, <.
 /// - Parameters are always passed by value.
 /// - "Return" just sets a return value, it doesn't interrupt control flow.
 /// - Function without a "return" statement returns 0.

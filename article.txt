@@ -1,0 +1,79 @@
+Writing a Simple DSL Compiler with Delphi
+
+- motivation: listening about a simple c# interpretor on hanselminutes - https://hanselminutes.com/586/you-should-write-an-interpreter-with-thorsten-ball
+- self-doubt: can I execute a simple DSL by rewriting it as a bunch of anonymous functions? 
+- a week later: yes I can!
+  - limitations: just for internal program use, "code" cannot be serialized to disk
+    - because we are not really compiling to machine code, but to a set of
+      code fragments, pre-prepared by the compiler; unclear? definitely -
+      will explain later
+  + benefits: supports all platforms that delphi compiler supports
+
+- for impatient: https://github.com/gabr42/SimpleDSLCompiler
+
+what I'm trying to achieve?
+
+// example using ?Add and Sub?, one nested call
+
+- battle plan
+  - i don't like to write parsers very much so ... very limited language
+  
+ fib(i) {
+   if i < 2 {
+     return 1
+   } else {
+     return fib(i-2) + fib(i-1)
+   }
+ }
+
+  - Spacing is ignored.
+  - Only data type is integer.
+  - "If" executes "then" block if expression is <> 0 and "else" block if expression = 0.
+  - Only operations are: +, -, <.
+  - There is no assignment.
+  - Parameters are always passed by value.
+  - "Return" just sets a return value, it doesn't interrupt control flow.
+  - Function without a "return" statement returns 0.
+ 
+  - Limited, but functional (and "functional" - we'll see later why that is important)
+  
+- pseudo-formal language definition:
+
+/// program = {function}
+///
+/// function = identifier "(" [ identifier { "," identifier } ] ")" block
+///
+/// block = { statement {";" statement} [";"] }
+///
+/// statement = if
+///           | return
+///
+/// if = "if" expression block "else" block
+///
+/// return = "return" expression
+///
+/// expression = term
+///            | term operator term
+///
+/// term = numeric_constant
+///      | function_call
+///      | identifier
+///
+/// operator = "+" | "-" | "<"
+///
+/// function_call = identifier "(" [expression { "," expression } ] ")"
+
+- code will:
+  - parse the source and create AST
+  - compile the AST 
+  
+- article plan:
+1) Abstract Syntax Tree
+2) Tokenizer
+3) Parser
+4) AST Dumper
+5) AST Compiler
+6) AST Interpreter
+7) Extending the language
+
+   
