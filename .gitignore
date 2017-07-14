@@ -64,3 +64,5 @@ unittests/OSX32/
 unittests/Win32/
 *.xml
 bag of stuff/numa/Win64/Debug/procinfo.dat
+
+Win32/Debug/demo_MemoryManager_EventLog\.txt

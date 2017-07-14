@@ -4,6 +4,7 @@ interface
 
 uses
   Winapi.Windows,
+  System.Generics.Collections,
   SimpleDSLCompiler.Runnable;
 
 type
@@ -26,6 +27,7 @@ type
   TStatement = reference to procedure (var context: TContext);
   TStatements = TArray<TStatement>;
   TFuncCallParams = TArray<TExpression>;
+  TMemoizer = TDictionary<TParameters,integer>;
 
 function  CodegenAdd(const expr1, expr2: TExpression): TExpression;
 function  CodegenBlock(const statements: TStatements): TStatement;
@@ -36,6 +38,7 @@ function  CodegenFunctionCall(funcIndex: integer; const params: TFuncCallParams)
 function  CodegenIfStatement(const condition: TExpression; const thenBlock,
   elseBlock: TStatement): TStatement;
 function  CodegenIsLess(const expr1, expr2: TExpression): TExpression;
+function  CodegenMemoizedFunction(const block: TStatement; memoizer: TMemoizer): TFunction;
 function  CodegenReturnStatement(const expression: TExpression): TStatement;
 function  CodegenSubtract(const expr1, expr2: TExpression): TExpression;
 function  CodegenVariable(varIndex: integer): TExpression;
@@ -156,6 +159,24 @@ begin
       for iParam := Low(params) to High(params) do
         funcParams[iParam] := params[iParam](context);
       Result := context.Exec.Functions[funcIndex](context.Exec, funcParams);
+    end;
+end;
+
+function CodegenMemoizedFunction(const block: TStatement; memoizer: TMemoizer): TFunction;
+begin
+  Result :=
+    function (execContext: PExecContext; const params: TParameters): integer
+    var
+      context: TContext;
+    begin
+      if not memoizer.TryGetValue(params, Result) then begin
+        context.Exec := execContext;
+        context.Params := params;
+        context.Result := 0;
+        block(context);
+        Result := context.Result;
+        memoizer.Add(params, Result);
+      end;
     end;
 end;
 
