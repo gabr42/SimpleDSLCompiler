@@ -23,20 +23,30 @@ uses
 
 const
   CMultiProcCode =
-    'fib(i) {                       '#13#10 +
-    '  if i < 3 {                   '#13#10 +
-    '    return 1                   '#13#10 +
-    '  } else {                     '#13#10 +
-    '    return fib(i-2) + fib(i-1) '#13#10 +
-    '  }                            '#13#10 +
-    '}                              '#13#10 +
-    'mult(a,b) {                    '#13#10 +
-    '  if b < 2 {                   '#13#10 +
-    '    return a                   '#13#10 +
-    '  } else {                     '#13#10 +
-    '    return mult(a, b-1) + a    '#13#10 +
-    '  }                            '#13#10 +
-    '}                              '#13#10;
+    'fib(i) {                          '#13#10 +
+    '  if i < 3 {                      '#13#10 +
+    '    return 1                      '#13#10 +
+    '  } else {                        '#13#10 +
+    '    return fib(i-2) + fib(i-1)    '#13#10 +
+    '  }                               '#13#10 +
+    '}                                 '#13#10 +
+    '                                  '#13#10 +
+    'mult(a,b) {                       '#13#10 +
+    '  if b < 2 {                      '#13#10 +
+    '    return a                      '#13#10 +
+    '  } else {                        '#13#10 +
+    '    return mult(a, b-1) + a       '#13#10 +
+    '  }                               '#13#10 +
+    '}                                 '#13#10 +
+    '                                  '#13#10 +
+    'power(a,b) {                      '#13#10 +
+    '  if b < 2 {                      '#13#10 +
+    '    return a                      '#13#10 +
+    '  }                               '#13#10 +
+    '  else {                          '#13#10 +
+    '    return mult(power(a, b-1), a) '#13#10 +
+    '  }                               '#13#10 +
+    '}                                 '#13#10;
 
 var
   compiler   : ISimpleDSLCompiler;
@@ -73,6 +83,9 @@ begin
         Writeln('mult(5,3) = ', res)
       else
         Writeln('mult: ' + (exec as ISimpleDSLErrorInfo).ErrorInfo);
+
+      exec.Call('power', [2,10], res);
+      Writeln('2^10 = ', res);
 
       Writeln(fib(7));
       exec.Call('fib', [7], res);
