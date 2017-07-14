@@ -65,7 +65,9 @@ what I'm trying to achieve?
 
 - code will:
   - parse the source and create AST
-  - compile the AST 
+  - compile the AST
+  
+- pluggable architecture 
   
 - article plan:
 1) Abstract Syntax Tree
@@ -74,6 +76,6 @@ what I'm trying to achieve?
 4) AST Dumper
 5) AST Compiler
 6) AST Interpreter
-7) Extending the language
-
+7) Speeding up codegen - Extending the language
+8) Speeding up interpreter - interfaces to classes
    
