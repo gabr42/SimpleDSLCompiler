@@ -21,19 +21,19 @@ type
   TSimpleDSLCodegenDump = class(TSimpleDSLCompilerBase, ISimpleDSLCodegen)
   strict private
     FAST        : ISimpleDSLAST;
-    FCurrentFunc: IASTFunction;
+    FCurrentFunc: TASTFunction;
     FDump       : TStringList;
     FErrors     : boolean;
     FText       : string;
   strict protected
-    procedure DumpBlock(const indent: string; const block: IASTBlock);
-    procedure DumpExpression(const expr: IASTExpression);
-    procedure DumpFunction(const func: IASTFunction);
-    procedure DumpFunctionCall(const funcCall: IASTTermFunctionCall);
-    procedure DumpIfStatement(const indent: string; const statement: IASTIfStatement);
-    procedure DumpReturnStatement(const indent: string; const statement: IASTReturnStatement);
-    procedure DumpStatement(const indent: string; const statement: IASTStatement);
-    procedure DumpTerm(const term: IASTTerm);
+    procedure DumpBlock(const indent: string; const block: TASTBlock);
+    procedure DumpExpression(const expr: TASTExpression);
+    procedure DumpFunction(const func: TASTFunction);
+    procedure DumpFunctionCall(const funcCall: TASTTermFunctionCall);
+    procedure DumpIfStatement(const indent: string; const statement: TASTIfStatement);
+    procedure DumpReturnStatement(const indent: string; const statement: TASTReturnStatement);
+    procedure DumpStatement(const indent: string; const statement: TASTStatement);
+    procedure DumpTerm(const term: TASTTerm);
     procedure WriteText(const s: string);
     procedure WritelnText(const s: string = '');
   public
@@ -56,7 +56,7 @@ begin
   FDump := dump;
 end; { TSimpleDSLCodegenDump.Create }
 
-procedure TSimpleDSLCodegenDump.DumpBlock(const indent: string; const block: IASTBlock);
+procedure TSimpleDSLCodegenDump.DumpBlock(const indent: string; const block: TASTBlock);
 var
   iStatement: integer;
 begin
@@ -71,7 +71,7 @@ begin
   WriteText(indent); WriteText('}');
 end; { TSimpleDSLCodegenDump.DumpBlock }
 
-procedure TSimpleDSLCodegenDump.DumpExpression(const expr: IASTExpression);
+procedure TSimpleDSLCodegenDump.DumpExpression(const expr: TASTExpression);
 begin
   DumpTerm(expr.Term1);
 
@@ -89,7 +89,7 @@ begin
   DumpTerm(expr.Term2);
 end; { TSimpleDSLCodegenDump.DumpExpression }
 
-procedure TSimpleDSLCodegenDump.DumpFunction(const func: IASTFunction);
+procedure TSimpleDSLCodegenDump.DumpFunction(const func: TASTFunction);
 begin
   FCurrentFunc := func;
   WriteText(Format('%s(%s) ', [func.Name, ''.Join(',', func.ParamNames.ToArray)]));
@@ -99,9 +99,9 @@ begin
   FCurrentFunc := nil;
 end; { TSimpleDSLCodegenDump.DumpFunction }
 
-procedure TSimpleDSLCodegenDump.DumpFunctionCall(const funcCall: IASTTermFunctionCall);
+procedure TSimpleDSLCodegenDump.DumpFunctionCall(const funcCall: TASTTermFunctionCall);
 var
-  func  : IASTFunction;
+  func  : TASTFunction;
   iParam: integer;
 begin
   func := FAST.Functions[funcCall.FunctionIdx];
@@ -116,7 +116,7 @@ begin
 end; { TSimpleDSLCodegenDump.DumpFunctionCall }
 
 procedure TSimpleDSLCodegenDump.DumpIfStatement(const indent: string; const statement:
-  IASTIfStatement);
+  TASTIfStatement);
 begin
   WriteText(indent);
   WriteText('if (');
@@ -128,24 +128,21 @@ begin
   DumpBlock(indent, statement.ElseBlock);
 end;
 
-procedure TSimpleDSLCodegenDump.DumpReturnStatement(const indent: string;
-  const statement: IASTReturnStatement);
+procedure TSimpleDSLCodegenDump.DumpReturnStatement(const indent: string; const
+  statement: TASTReturnStatement);
 begin
   WriteText(indent);
   WriteText('return ');
   DumpExpression(statement.Expression);
 end; { TSimpleDSLCodegenDump.DumpReturnStatement }
 
-procedure TSimpleDSLCodegenDump.DumpStatement(const indent: string;
-  const statement: IASTStatement);
-var
-  stmIf    : IASTIfStatement;
-  stmReturn: IASTReturnStatement;
+procedure TSimpleDSLCodegenDump.DumpStatement(const indent: string; const statement:
+  TASTStatement);
 begin
-  if Supports(statement, IASTIfStatement, stmIf) then
-    DumpIfStatement(indent, stmIf)
-  else if Supports(statement, IASTReturnStatement, stmReturn) then
-    DumpReturnStatement(indent, stmReturn)
+  if statement.ClassType = TASTIfStatement then
+    DumpIfStatement(indent, TASTIfStatement(statement))
+  else if statement.ClassType = TASTReturnStatement then
+    DumpReturnStatement(indent, TASTReturnStatement(statement))
   else begin
     WritelnText('*** Unknown statement');
     FErrors := true;
@@ -153,18 +150,14 @@ begin
   end;
 end; { TSimpleDSLCodegenDump.DumpStatement }
 
-procedure TSimpleDSLCodegenDump.DumpTerm(const term: IASTTerm);
-var
-  termConst   : IASTTermConstant;
-  termFuncCall: IASTTermFunctionCall;
-  termVar     : IASTTermVariable;
+procedure TSimpleDSLCodegenDump.DumpTerm(const term: TASTTerm);
 begin
-  if Supports(term, IASTTermConstant, termConst) then
-    WriteText(IntToStr(termConst.Value))
-  else if Supports(term, IASTTermVariable, termVar) then
-    WriteText(FCurrentFunc.ParamNames[termVar.VariableIdx])
-  else if Supports(term, IASTTermFunctionCall, termFuncCall) then
-    DumpFunctionCall(termFuncCall)
+  if term.ClassType = TASTTermConstant then
+    WriteText(IntToStr(TASTTermConstant(term).Value))
+  else if term.ClassType = TASTTermVariable then
+    WriteText(FCurrentFunc.ParamNames[TASTTermVariable(term).VariableIdx])
+  else if term.ClassType = TASTTermFunctionCall then
+    DumpFunctionCall(TASTTermFunctionCall(term))
   else begin
     WritelnText('*** Unexpected term');
     FErrors := true;

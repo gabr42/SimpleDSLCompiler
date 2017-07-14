@@ -28,17 +28,19 @@ type
   TSimpleDSLInterpreter = class(TSimpleDSLCompilerBase, ISimpleDSLProgram)
   strict private
     FAST      : ISimpleDSLAST;
-    FMemoizers: TObjectDictionary<IASTFunction, TMemoizer>;
+    FMemoizers: TObjectDictionary<TASTFunction, TMemoizer>;
   strict protected
-    function  CallFunction(const func: IASTFunction; const params: TParameters;
+    function  CallFunction(const func: TASTFunction; const params: TParameters;
       var return: integer): boolean;
-    function  EvalBlock(var context: TContext; const block: IASTBlock): boolean;
-    function  EvalExpression(var context: TContext; const expression: IASTExpression; var value: integer): boolean;
-    function  EvalFunctionCall(var context: TContext; const functionCall: IASTTermFunctionCall; var value: integer): boolean;
-    function  EvalIfStatement(var context: TContext; const statement: IASTIfStatement): boolean;
-    function  EvalReturnStatement(var context: TContext; const statement: IASTReturnStatement): boolean;
-    function  EvalStatement(var context: TContext; const statement: IASTStatement): boolean;
-    function  EvalTerm(var context: TContext; const term: IASTTerm; var value: integer): boolean;
+    function  EvalBlock(var context: TContext; const block: TASTBlock): boolean;
+    function  EvalExpression(var context: TContext; const expression: TASTExpression;
+      var value: integer): boolean;
+    function  EvalFunctionCall(var context: TContext; const functionCall: TASTTermFunctionCall;
+      var value: integer): boolean;
+    function  EvalIfStatement(var context: TContext; const statement: TASTIfStatement): boolean;
+    function  EvalReturnStatement(var context: TContext; const statement: TASTReturnStatement): boolean;
+    function  EvalStatement(var context: TContext; const statement: TASTStatement): boolean;
+    function  EvalTerm(var context: TContext; const term: TASTTerm; var value: integer): boolean;
   public
     constructor Create(const ast: ISimpleDSLAST);
     destructor  Destroy; override;
@@ -60,7 +62,7 @@ constructor TSimpleDSLInterpreter.Create(const ast: ISimpleDSLAST);
 begin
   inherited Create;
   FAST := ast;
-  FMemoizers := TObjectDictionary<IASTFunction, TMemoizer>.Create([doOwnsValues]);
+  FMemoizers := TObjectDictionary<TASTFunction, TMemoizer>.Create([doOwnsValues]);
 end; { TSimpleDSLInterpreter.Create }
 
 destructor TSimpleDSLInterpreter.Destroy;
@@ -81,7 +83,7 @@ begin
   Result := SetError('Unknown function');
 end; { TSimpleDSLInterpreter.Call }
 
-function TSimpleDSLInterpreter.CallFunction(const func: IASTFunction; const params:
+function TSimpleDSLInterpreter.CallFunction(const func: TASTFunction; const params:
   TParameters; var return: integer): boolean;
 var
   context : TContext;
@@ -110,10 +112,10 @@ begin
   end;
 end; { TSimpleDSLInterpreter.CallFunction }
 
-function TSimpleDSLInterpreter.EvalBlock(var context: TContext; const block: IASTBlock):
+function TSimpleDSLInterpreter.EvalBlock(var context: TContext; const block: TASTBlock):
   boolean;
 var
-  statement: IASTStatement;
+  statement: TASTStatement;
 begin
   Result := false;
 
@@ -125,7 +127,7 @@ begin
 end; { TSimpleDSLInterpreter.EvalBlock }
 
 function TSimpleDSLInterpreter.EvalExpression(var context: TContext; const expression:
-  IASTExpression; var value: integer): boolean;
+  TASTExpression; var value: integer): boolean;
 var
   term1: integer;
   term2: integer;
@@ -159,8 +161,8 @@ begin
   Result := true;
 end; { TSimpleDSLInterpreter.EvalExpression }
 
-function TSimpleDSLInterpreter.EvalFunctionCall(var context: TContext;
-  const functionCall: IASTTermFunctionCall; var value: integer): boolean;
+function TSimpleDSLInterpreter.EvalFunctionCall(var context: TContext; const
+  functionCall: TASTTermFunctionCall; var value: integer): boolean;
 var
   funcReturn: integer;
   iParam    : integer;
@@ -185,8 +187,8 @@ begin
   Result := true;
 end; { TSimpleDSLInterpreter.EvalFunctionCall }
 
-function TSimpleDSLInterpreter.EvalIfStatement(var context: TContext;
-  const statement: IASTIfStatement): boolean;
+function TSimpleDSLInterpreter.EvalIfStatement(var context: TContext; const statement:
+  TASTIfStatement): boolean;
 var
   value: integer;
 begin
@@ -199,8 +201,8 @@ begin
   end;
 end; { TSimpleDSLInterpreter.EvalIfStatement }
 
-function TSimpleDSLInterpreter.EvalReturnStatement(var context: TContext;
-  const statement: IASTReturnStatement): boolean;
+function TSimpleDSLInterpreter.EvalReturnStatement(var context: TContext; const
+  statement: TASTReturnStatement): boolean;
 var
   value: integer;
 begin
@@ -210,38 +212,34 @@ begin
 end; { TSimpleDSLInterpreter.EvalReturnStatement }
 
 function TSimpleDSLInterpreter.EvalStatement(var context: TContext; const statement:
-  IASTStatement): boolean;
-var
-  stmIf    : IASTIfStatement;
-  stmReturn: IASTReturnStatement;
+  TASTStatement): boolean;
 begin
-  if Supports(statement, IASTIfStatement, stmIf) then
-    Result := EvalIfStatement(context, stmIf)
-  else if Supports(statement, IASTReturnStatement, stmReturn) then
-    Result := EvalReturnStatement(context, stmReturn)
+  if statement.ClassType = TASTIfStatement then
+    Result := EvalIfStatement(context, TASTIfStatement(statement))
+  else if statement.ClassType = TASTReturnStatement then
+    Result := EvalReturnStatement(context, TASTReturnStatement(statement))
   else
     Result := SetError('*** Unknown statement');
 end; { TSimpleDSLInterpreter.EvalStatement }
 
-function TSimpleDSLInterpreter.EvalTerm(var context: TContext; const term: IASTTerm;
+function TSimpleDSLInterpreter.EvalTerm(var context: TContext; const term: TASTTerm;
   var value: integer): boolean;
 var
-  funcResult  : integer;
-  termConst   : IASTTermConstant;
-  termFuncCall: IASTTermFunctionCall;
-  termVar     : IASTTermVariable;
+  funcResult: integer;
 begin
   Result := true;
-  if Supports(term, IASTTermConstant, termConst) then
-    value := termConst.Value
-  else if Supports(term, IASTTermVariable, termVar) then begin
-    if (termVar.VariableIdx < Low(context.Params)) or (termVar.VariableIdx > High(context.Params)) then
-      Result := SetError('*** Invalida variable')
+  if term.ClassType = TASTTermConstant then
+    value := TASTTermConstant(term).Value
+  else if term.ClassType = TASTTermVariable then begin
+    if (TASTTermVariable(term).VariableIdx < Low(context.Params))
+       or (TASTTermVariable(term).VariableIdx > High(context.Params))
+    then
+      Result := SetError('*** Invalid variable')
     else
-      value := context.Params[termVar.VariableIdx];
+      value := context.Params[TASTTermVariable(term).VariableIdx];
   end
-  else if Supports(term, IASTTermFunctionCall, termFuncCall) then begin
-    Result := EvalFunctionCall(context, termFuncCall, funcResult);
+  else if term.ClassType = TASTTermFunctionCall then begin
+    Result := EvalFunctionCall(context, TASTTermFunctionCall(term), funcResult);
     if Result then
       value := funcResult;
   end
