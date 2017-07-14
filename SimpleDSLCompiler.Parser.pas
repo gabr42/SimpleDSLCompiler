@@ -52,6 +52,7 @@ type
     function  ParseFunction: boolean;
     function  ParseReturn(var statement: IASTStatement): boolean;
     function  ParseIf(var statement: IASTStatement): boolean;
+    function ParseIndentList(stopToken: TTokenKind; var idents: TArray<string>): boolean;
     function  ParseStatement(var statement: IASTStatement): boolean;
     function  ParseTerm(var term: IASTTerm): boolean;
     procedure PushBack(token: TTokenKind; const ident: string);
@@ -266,12 +267,13 @@ end; { TSimpleDSLParser.ParseExpression }
 
 function TSimpleDSLParser.ParseFunction: boolean;
 var
-  block   : IASTBlock;
-  expected: TTokenKinds;
-  func    : IASTFunction;
-  funcName: string;
-  ident   : string;
-  token   : TTokenKind;
+  attrNames : TArray<string>;
+  block     : IASTBlock;
+  func      : IASTFunction;
+  funcName  : string;
+  ident     : string;
+  paramNames: TArray<string>;
+  token     : TTokenKind;
 begin
   Result := false;
 
@@ -287,34 +289,28 @@ begin
 
   FContext.CurrentFunc := func;
   try
-
     // "("
     if not FetchToken([tkLeftParen]) then
       Exit;
 
     // parameter list, including ")"
-    expected := [tkIdent, tkRightParen];
-    repeat
-      if not FetchToken(expected, ident, token) then
+    if not ParseIndentList(tkRightParen, paramNames) then
+      Exit;
+
+    // optional attribute list
+    if not FetchToken([tkLeftSquare], ident, token) then
+      PushBack(token, ident)
+    else if not ParseIndentList(tkRightSquare, attrNames) then
         Exit;
-      if token = tkRightParen then
-        break //repeat
-      else if token = tkIdent then begin
-        func.ParamNames.Add(ident);
-        expected := expected - [tkIdent] + [tkComma, tkRightParen];
-      end
-      else if token = tkComma then
-        expected := expected + [tkIdent] - [tkComma, tkRightParen]
-      else begin
-        LastError := 'Internal error in ParseFunction';
-        Exit;
-      end;
-    until false;
+
+    // must be set before parsing the body so that parser will know which idents are variables
+    func.ParamNames.AddRange(paramNames);
 
     // function body
     if not ParseBlock(block) then
       Exit;
 
+    func.Attributes.AddRange(attrNames);
     func.Body := block;
     Result := true;
   finally
@@ -362,6 +358,39 @@ begin
   statement := stmt;
   Result := true;
 end; { TSimpleDSLParser.ParseIf }
+
+function TSimpleDSLParser.ParseIndentList(stopToken: TTokenKind; var idents:
+  TArray<string>): boolean;
+var
+  expected : TTokenKinds;
+  ident    : string;
+  identList: TList<string>;
+  token    : TTokenKind;
+begin
+  Result := false;
+  identList := TList<string>.Create;
+  try
+    expected := [tkIdent] + [stopToken];
+    repeat
+      if not FetchToken(expected, ident, token) then
+        Exit;
+      if token = stopToken then
+        break //repeat
+      else if token = tkIdent then begin
+        identList.Add(ident);
+        expected := expected - [tkIdent] + [tkComma] + [stopToken];
+      end
+      else if token = tkComma then
+        expected := expected + [tkIdent] - [tkComma] - [stopToken]
+      else begin
+        LastError := 'Internal error in ParseIdentList';
+        Exit;
+      end;
+    until false;
+    idents := identList.ToArray;
+    Result := true;
+  finally FreeAndNil(identList); end;
+end; { TSimpleDSLParser.ParseIndentList }
 
 function TSimpleDSLParser.ParseReturn(var statement: IASTStatement): boolean;
 var

@@ -4,9 +4,11 @@ unit SimpleDSLCompiler;
 ///
 /// program = {function}
 ///
-/// function = identifier "(" [ identifier { "," identifier } ] ")" block
+/// function = identifier "(" [ identifier { "," identifier } ] ")" [ "[" attribute_list "]" ] block
 ///
-/// block = { statement {";" statement} [";"] }
+/// attribute_list = identifier { ',' identifier }
+///
+/// block = { statement { ";" statement } [";"] }
 ///
 /// statement = if
 ///           | return

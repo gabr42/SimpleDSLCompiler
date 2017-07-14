@@ -68,7 +68,7 @@ begin
     else
       WritelnText;
   end;
-  WriteText(indent); WritelnText('}');
+  WriteText(indent); WriteText('}');
 end; { TSimpleDSLCodegenDump.DumpBlock }
 
 procedure TSimpleDSLCodegenDump.DumpExpression(const expr: IASTExpression);
@@ -92,7 +92,9 @@ end; { TSimpleDSLCodegenDump.DumpExpression }
 procedure TSimpleDSLCodegenDump.DumpFunction(const func: IASTFunction);
 begin
   FCurrentFunc := func;
-  WritelnText(Format('%s(%s)', [func.Name, ''.Join(',', func.ParamNames.ToArray)]));
+  WriteText(Format('%s(%s) ', [func.Name, ''.Join(',', func.ParamNames.ToArray)]));
+  if func.Attributes.Count > 0 then
+    WriteText('[' + ''.Join(',', func.Attributes.ToArray) + '] ');
   DumpBlock('', func.Body);
   FCurrentFunc := nil;
 end; { TSimpleDSLCodegenDump.DumpFunction }
@@ -119,10 +121,10 @@ begin
   WriteText(indent);
   WriteText('if (');
   DumpExpression(statement.Condition);
-  WritelnText(')');
+  WriteText(')');
   DumpBlock(indent, statement.ThenBlock);
   WriteText(indent);
-  WritelnText('else');
+  WriteText('else');
   DumpBlock(indent, statement.ElseBlock);
 end;
 
@@ -177,8 +179,10 @@ begin
   FErrors := false;
   FAST := ast;
   for i := 0 to ast.Functions.Count - 1 do begin
-    if i > 0 then
+    if i > 0 then begin
       WritelnText;
+      WritelnText;
+    end;
     DumpFunction(ast.Functions[i]);
   end;
   FDump.Text := FText;

@@ -88,9 +88,11 @@ type
     property Statements: TStatementList read GetStatements;
   end; { IASTBlock }
 
+  TAttributeList = TList<string>;
   TParameterList = TList<string>;
 
   IASTFunction = interface ['{FA4F603A-FE89-40D4-8F96-5607E4EBE511}']
+    function  GetAttributes: TAttributeList;
     function  GetBody: IASTBlock;
     function  GetName: string;
     function  GetParamNames: TParameterList;
@@ -98,6 +100,7 @@ type
     procedure SetName(const value: string);
   //
     property Name: string read GetName write SetName;
+    property Attributes: TAttributeList read GetAttributes;
     property ParamNames: TParameterList read GetParamNames;
     property Body: IASTBlock read GetBody write SetBody;
   end; { IASTFunction }
@@ -235,10 +238,12 @@ type
 
   TASTFunction = class(TInterfacedObject, IASTFunction)
   strict private
+    FAttributes: TAttributeList;
     FBody      : IASTBlock;
     FName      : string;
     FParamNames: TParameterList;
   strict protected
+    function  GetAttributes: TAttributeList; inline;
     function  GetBody: IASTBlock;
     function  GetName: string; inline;
     function  GetParamNames: TParameterList; inline;
@@ -249,6 +254,7 @@ type
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
     property Name: string read GetName write SetName;
+    property Attributes: TAttributeList read GetAttributes;
     property ParamNames: TParameterList read GetParamNames write SetParamNames;
     property Body: IASTBlock read GetBody write SetBody;
   end; { TASTFunction }
@@ -445,14 +451,21 @@ end; { TASTBlock.GetStatements }
 procedure TASTFunction.AfterConstruction;
 begin
   inherited;
+  FAttributes := TAttributeList.Create;
   FParamNames := TParameterList.Create;
 end; { TASTFunction.AfterConstruction }
 
 procedure TASTFunction.BeforeDestruction;
 begin
   FreeAndNil(FParamNames);
+  FreeAndNil(FAttributes);
   inherited;
 end; { TASTFunction.BeforeDestruction }
+
+function TASTFunction.GetAttributes: TAttributeList;
+begin
+  Result := FAttributes;
+end; { TASTFunction.GetAttributes }
 
 function TASTFunction.GetBody: IASTBlock;
 begin

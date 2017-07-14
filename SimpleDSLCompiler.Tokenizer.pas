@@ -9,7 +9,7 @@ uses
 type
   TTokenKind = (tkUnknown, tkWhitespace,
                 tkIdent, tkNumber,
-                tkLeftParen, tkRightParen, tkLeftCurly, tkRightCurly,
+                tkLeftParen, tkRightParen, tkLeftCurly, tkRightCurly, tkLeftSquare, tkRightSquare,
                 tkLessThan, tkPlus, tkMinus,
                 tkComma, tkSemicolon,
                 tkEOF);
@@ -148,6 +148,8 @@ begin
     ')': kind := tkRightParen;
     '{': kind := tkLeftCurly;
     '}': kind := tkRightCurly;
+    '[': kind := tkLeftSquare;
+    ']': kind := tkRightSquare;
     '+': kind := tkPlus;
     '-': kind := tkMinus;
     '<': kind := tkLessThan;

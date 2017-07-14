@@ -26,6 +26,7 @@ uses
 type
   ISimpleDSLProgramEx = interface ['{4CEF7C78-FF69-47E2-9F63-706E167AF3A9}']
     procedure DeclareFunction(idx: integer; const name: string; const code: TFunction);
+    function  GetMemoizer(idx: integer): TMemoizer;
   end; { ISimpleDSLProgramEx }
 
   TSimpleDSLProgram = class(TSimpleDSLCompilerBase, ISimpleDSLProgram,
@@ -37,6 +38,7 @@ type
     end; { TFunctionInfo }
   var
     FFunctions: TList<TFunctionInfo>;
+    FMemoizers: TObjectList<TMemoizer>;
   strict protected
     procedure SetupContext(var context: TExecContext);
   public
@@ -44,6 +46,7 @@ type
     procedure BeforeDestruction; override;
     function  Call(const functionName: string; const params: TParameters; var return: integer): boolean;
     procedure DeclareFunction(idx: integer; const name: string; const code: TFunction);
+    function  GetMemoizer(idx: integer): TMemoizer;
   end; { TSimpleDSLProgram }
 
   TSimpleDSLCodegen = class(TSimpleDSLCompilerBase, ISimpleDSLCodegen)
@@ -79,10 +82,12 @@ procedure TSimpleDSLProgram.AfterConstruction;
 begin
   inherited;
   FFunctions := TList<TFunctionInfo>.Create;
+  FMemoizers := TObjectList<TMemoizer>.Create(true);
 end; { TSimpleDSLProgram.AfterConstruction }
 
 procedure TSimpleDSLProgram.BeforeDestruction;
 begin
+  FreeAndNil(FMemoizers);
   FreeAndNil(FFunctions);
   inherited;
 end; { TSimpleDSLProgram.BeforeDestruction }
@@ -109,11 +114,25 @@ procedure TSimpleDSLProgram.DeclareFunction(idx: integer; const name: string;
 var
   funcInfo: TFunctionInfo;
 begin
-  Assert(idx = FFunctions.Count);
+  while FFunctions.Count <= idx do
+    FFunctions.Add(Default(TFunctionInfo));
+  if FFunctions[idx].Code <> nil then
+    raise Exception.CreateFmt('TSimpleDSLProgram.DeclareFunction: Function %d is already declared', [idx]);
+  if not assigned(code) then
+    raise Exception.CreateFmt('TSimpleDSLProgram.DeclareFunction: Function %d has no code block', [idx]);
   funcInfo.Name := name;
   funcInfo.Code := code;
-  FFunctions.Add(funcInfo);
+  FFunctions[idx] := funcInfo;
 end; { TSimpleDSLProgram.DeclareFunction }
+
+function TSimpleDSLProgram.GetMemoizer(idx: integer): TMemoizer;
+begin
+  while FMemoizers.Count <= idx do
+    FMemoizers.Add(nil);
+  if not assigned(FMemoizers[idx]) then
+    FMemoizers[idx] := TMemoizer.Create;
+  Result := FMemoizers[idx];
+end; { TSimpleDSLProgram.GetMemoizer }
 
 procedure TSimpleDSLProgram.SetupContext(var context: TExecContext);
 var
@@ -277,7 +296,11 @@ begin
   for i := 0 to ast.Functions.Count - 1 do begin
     if not CompileBlock(ast.Functions[i].Body, block) then
       Exit;
-    runnableInt.DeclareFunction(i, ast.Functions[i].Name, CodegenFunction(block));
+    if not ast.Functions[i].Attributes.Contains('memo') then
+      runnableInt.DeclareFunction(i, ast.Functions[i].Name, CodegenFunction(block))
+    else begin
+      runnableInt.DeclareFunction(i, ast.Functions[i].Name, CodegenMemoizedFunction(block, runnableInt.GetMemoizer(i)));
+    end;
   end;
   Result := true;
 end; { TSimpleDSLCodegen.Generate }
