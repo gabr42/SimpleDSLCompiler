@@ -97,7 +97,7 @@ begin
       FMemoizers.Add(func, memoizer);
     end;
     if memoizer.TryGetValue(params, return) then
-      Exit;
+      Exit(true);
   end;
 
   context.Params := params;
