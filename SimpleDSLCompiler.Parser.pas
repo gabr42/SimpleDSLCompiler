@@ -31,7 +31,7 @@ type
   TSimpleDSLParser = class(TSimpleDSLCompilerBase, ISimpleDSLParser)
   strict private type
     TContext = record
-      CurrentFunc   : IASTFunction;
+      CurrentFunc: TASTFunction;
     end;
   var
     FAST           : ISimpleDSLAST;
@@ -46,15 +46,15 @@ type
     function  GetToken(var token: TTokenKind; var ident: string): boolean;
     function  IsFunction(const ident: string; var funcIdx: integer): boolean;
     function  IsVariable(const ident: string; var varIdx: integer): boolean;
-    function  ParseBlock(var block: IASTBlock): boolean;
-    function  ParseExpression(var expression: IASTExpression): boolean;
+    function  ParseBlock(var block: TASTBlock): boolean;
+    function  ParseExpression(var expression: TASTExpression): boolean;
     function  ParseExpresionList(parameters: TExpressionList): boolean;
     function  ParseFunction: boolean;
-    function  ParseReturn(var statement: IASTStatement): boolean;
-    function  ParseIf(var statement: IASTStatement): boolean;
-    function ParseIndentList(stopToken: TTokenKind; var idents: TArray<string>): boolean;
-    function  ParseStatement(var statement: IASTStatement): boolean;
-    function  ParseTerm(var term: IASTTerm): boolean;
+    function  ParseReturn(var statement: TASTStatement): boolean;
+    function  ParseIf(var statement: TASTStatement): boolean;
+    function  ParseIndentList(stopToken: TTokenKind; var idents: TArray<string>): boolean;
+    function  ParseStatement(var statement: TASTStatement): boolean;
+    function  ParseTerm(var term: TASTTerm): boolean;
     procedure PushBack(token: TTokenKind; const ident: string);
     property AST: ISimpleDSLAST read FAST;
   public
@@ -143,10 +143,10 @@ begin
   Result := true;
 end; { TSimpleDSLParser.Parse }
 
-function TSimpleDSLParser.ParseBlock(var block: IASTBlock): boolean;
+function TSimpleDSLParser.ParseBlock(var block: TASTBlock): boolean;
 var
   ident     : string;
-  statement : IASTStatement;
+  statement : TASTStatement;
   statements: TStatementList;
   token     : TTokenKind;
 begin
@@ -176,7 +176,7 @@ begin
       end;
     until token = tkRightCurly;
 
-    block := AST.CreateBlock;
+    block := TASTBlock.Create;
     for statement in statements do
       block.Statements.Add(statement);
   finally FreeAndNil(statements); end;
@@ -186,7 +186,7 @@ end; { TSimpleDSLParser.ParseBlock }
 function TSimpleDSLParser.ParseExpresionList(parameters: TExpressionList): boolean;
 var
   expected: TTokenKinds;
-  expr    : IASTExpression;
+  expr    : TASTExpression;
   ident   : string;
   token   : TTokenKind;
 begin
@@ -224,11 +224,11 @@ begin
   Result := true;
 end; { TSimpleDSLParser.ParseExpresionList }
 
-function TSimpleDSLParser.ParseExpression(var expression: IASTExpression): boolean;
+function TSimpleDSLParser.ParseExpression(var expression: TASTExpression): boolean;
 var
-  expr : IASTExpression;
+  expr : TASTExpression;
   ident: string;
-  term : IASTTerm;
+  term : TASTTerm;
   token: TTokenKind;
 begin
   Result := false;
@@ -238,7 +238,7 @@ begin
   ///
   /// operator = "+" | "-" | "<"
 
-  expr := AST.CreateExpression;
+  expr := TASTExpression.Create;
 
   if not ParseTerm(term) then
     Exit;
@@ -268,8 +268,8 @@ end; { TSimpleDSLParser.ParseExpression }
 function TSimpleDSLParser.ParseFunction: boolean;
 var
   attrNames : TArray<string>;
-  block     : IASTBlock;
-  func      : IASTFunction;
+  block     : TASTBlock;
+  func      : TASTFunction;
   funcName  : string;
   ident     : string;
   paramNames: TArray<string>;
@@ -283,7 +283,7 @@ begin
   if not FetchToken([tkIdent], funcName, token) then
     Exit(token = tkEOF);
 
-  func := AST.CreateFunction;
+  func := TASTFunction.Create;
   func.Name := funcName;
   AST.Functions.Add(func); // we might need this function in the global table for recursive calls
 
@@ -318,14 +318,14 @@ begin
   end;
 end; { TSimpleDSLParser.ParseFunction }
 
-function TSimpleDSLParser.ParseIf(var statement: IASTStatement): boolean;
+function TSimpleDSLParser.ParseIf(var statement: TASTStatement): boolean;
 var
-  condition: IASTExpression;
-  elseBlock: IASTBlock;
+  condition: TASTExpression;
+  elseBlock: TASTBlock;
   ident    : string;
   loc      : TPoint;
-  stmt     : IASTIfStatement;
-  thenBlock: IASTBlock;
+  stmt     : TASTIfStatement;
+  thenBlock: TASTBlock;
 begin
   Result := false;
 
@@ -350,7 +350,7 @@ begin
   if not ParseBlock(elseBlock) then
     Exit;
 
-  stmt := AST.CreateStatement(stIf) as IASTIfStatement;
+  stmt := TASTIfStatement.Create;
   stmt.Condition := condition;
   stmt.ThenBlock := thenBlock;
   stmt.ElseBlock := elseBlock;
@@ -392,10 +392,10 @@ begin
   finally FreeAndNil(identList); end;
 end; { TSimpleDSLParser.ParseIndentList }
 
-function TSimpleDSLParser.ParseReturn(var statement: IASTStatement): boolean;
+function TSimpleDSLParser.ParseReturn(var statement: TASTStatement): boolean;
 var
-  expression: IASTExpression;
-  stmt      : IASTReturnStatement;
+  expression: TASTExpression;
+  stmt      : TASTReturnStatement;
 begin
   Result := false;
 
@@ -405,14 +405,14 @@ begin
   if not ParseExpression(expression) then
     Exit;
 
-  stmt := Ast.CreateStatement(stReturn) as IASTReturnStatement;
+  stmt := TASTReturnStatement.Create;
   stmt.Expression := expression;
 
   statement := stmt;
   Result := true;
 end; { TSimpleDSLParser.ParseReturn }
 
-function TSimpleDSLParser.ParseStatement(var statement: IASTStatement): boolean;
+function TSimpleDSLParser.ParseStatement(var statement: TASTStatement): boolean;
 var
   ident: string;
   loc  : TPoint;
@@ -435,15 +435,15 @@ begin
   end;
 end; { TSimpleDSLParser.ParseStatement }
 
-function TSimpleDSLParser.ParseTerm(var term: IASTTerm): boolean;
+function TSimpleDSLParser.ParseTerm(var term: TASTTerm): boolean;
 var
-  constant: IASTTermConstant;
-  funcCall: IASTTermFunctionCall;
+  constant: TASTTermConstant;
+  funcCall: TASTTermFunctionCall;
   funcIdx : integer;
   ident   : string;
   loc     : TPoint;
   token   : TTokenKind;
-  variable: IASTTermVariable;
+  variable: TASTTermVariable;
   varIdx  : integer;
 begin
   Result := false;
@@ -459,14 +459,14 @@ begin
 
   if token = tkNumber then begin
     // parse numeric constant
-    constant := AST.CreateTerm(termConstant) as IASTTermConstant;
+    constant := TASTTermConstant.Create;
     constant.Value := StrToInt(ident);
     term := constant;
     Result := true;
   end
   else if IsFunction(ident, funcIdx) then begin
     // parse function call
-    funcCall := AST.CreateTerm(termFunctionCall) as IASTTermFunctionCall;
+    funcCall := TASTTermFunctionCall.Create;
     funcCall.FunctionIdx := funcIdx;
     Result := ParseExpresionList(funcCall.Parameters);
     if Result then
@@ -474,7 +474,7 @@ begin
   end
   else if IsVariable(ident, varIdx) then begin
     // parse variable
-    variable := AST.CreateTerm(termVariable) as IASTTermVariable;
+    variable := TASTTermVariable.Create;
     variable.VariableIdx := varIdx;
     term := variable;
     Result := true;

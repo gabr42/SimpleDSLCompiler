@@ -54,18 +54,20 @@ type
   strict private
     FAST: ISimpleDSLAST;
   strict protected
-    function  CompileBlock(const astBlock: IASTBlock; var codeBlock: TStatement): boolean;
-    function  CompileExpression(const astExpression: IASTExpression;
+    function CompileBlock(const astBlock: TASTBlock;
+      var codeBlock: TStatement): boolean;
+    function CompileExpression(const astExpression: TASTExpression;
       var codeExpression: TExpression): boolean;
-    function  CompileFunctionCall(const astFuncCall: IASTTermFunctionCall;
+    function CompileFunctionCall(const astFuncCall: TASTTermFunctionCall;
       var codeExpression: TExpression): boolean;
-    function  CompileIfStatement(const astStatement: IASTIfStatement;
+    function CompileIfStatement(const astStatement: TASTIfStatement;
       var codeStatement: TStatement): boolean;
-    function  CompileReturnStatement(const astStatement: IASTReturnStatement;
+    function CompileReturnStatement(const astStatement: TASTReturnStatement;
       var codeStatement: TStatement): boolean;
-    function  CompileStatement(const astStatement: IASTStatement;
+    function CompileStatement(const astStatement: TASTStatement;
       var codeStatement: TStatement): boolean;
-    function  CompileTerm(const astTerm: IASTTerm; var codeTerm: TExpression): boolean;
+    function CompileTerm(const astTerm: TASTTerm;
+      var codeTerm: TExpression): boolean;
   public
     function  Generate(const ast: ISimpleDSLAST; var runnable: ISimpleDSLProgram): boolean;
   end; { TSimpleDSLCodegen }
@@ -167,7 +169,7 @@ end; { TSimpleDSLProgram.SetupContext }
 
 { TSimpleDSLCodegen }
 
-function TSimpleDSLCodegen.CompileBlock(const astBlock: IASTBlock; var codeBlock:
+function TSimpleDSLCodegen.CompileBlock(const astBlock: TASTBlock; var codeBlock:
   TStatement): boolean;
 var
   codeStatement: TStatement;
@@ -188,8 +190,8 @@ begin
   Result := true;
 end; { TSimpleDSLCodegen.CompileBlock }
 
-function TSimpleDSLCodegen.CompileExpression(const astExpression: IASTExpression;
-  var codeExpression: TExpression): boolean;
+function TSimpleDSLCodegen.CompileExpression(const astExpression: TASTExpression; var
+  codeExpression: TExpression): boolean;
 var
   term1: TExpression;
   term2: TExpression;
@@ -215,10 +217,10 @@ begin
   end;
 end; { TSimpleDSLCodegen.CompileExpression }
 
-function TSimpleDSLCodegen.CompileFunctionCall(const astFuncCall: IASTTermFunctionCall;
+function TSimpleDSLCodegen.CompileFunctionCall(const astFuncCall: TASTTermFunctionCall;
   var codeExpression: TExpression): boolean;
 var
-  func      : IASTFunction;
+  func      : TASTFunction;
   iParam    : integer;
   parameters: TFuncCallParams;
   paramExpr : TExpression;
@@ -243,8 +245,8 @@ begin
   end;
 end;
 
-function TSimpleDSLCodegen.CompileIfStatement(const astStatement: IASTIfStatement;
-  var codeStatement: TStatement): boolean;
+function TSimpleDSLCodegen.CompileIfStatement(const astStatement: TASTIfStatement; var
+  codeStatement: TStatement): boolean;
 var
   condition: TExpression;
   elseBlock: TStatement;
@@ -263,7 +265,7 @@ begin
 end; { TSimpleDSLCodegen.CompileIfStatement }
 
 function TSimpleDSLCodegen.CompileReturnStatement(const astStatement:
-  IASTReturnStatement; var codeStatement: TStatement): boolean;
+  TASTReturnStatement; var codeStatement: TStatement): boolean;
 var
   expression: TExpression;
 begin
@@ -272,34 +274,26 @@ begin
     codeStatement := CodegenReturnStatement(expression);
 end; { TSimpleDSLCodegen.CompileReturnStatement }
 
-function TSimpleDSLCodegen.CompileStatement(const astStatement: IASTStatement;
-  var codeStatement: TStatement): boolean;
-var
-  stmIf    : IASTIfStatement;
-  stmReturn: IASTReturnStatement;
+function TSimpleDSLCodegen.CompileStatement(const astStatement: TASTStatement; var
+  codeStatement: TStatement): boolean;
 begin
-  if Supports(astStatement, IASTIfStatement, stmIf) then
-    Result := CompileIfStatement(stmIf, codeStatement)
-  else if Supports(astStatement, IASTReturnStatement, stmReturn) then
-    Result := CompileReturnStatement(stmReturn, codeStatement)
+  if astStatement.ClassType = TASTIfStatement then
+    Result := CompileIfStatement(TASTIfStatement(astStatement), codeStatement)
+  else if astStatement.ClassType = TASTReturnStatement then
+    Result := CompileReturnStatement(TASTReturnStatement(astStatement), codeStatement)
   else
     Result := SetError('*** Unknown statement');
 end; { TSimpleDSLCodegen.CompileStatement }
 
-function TSimpleDSLCodegen.CompileTerm(const astTerm: IASTTerm; var codeTerm:
-  TExpression): boolean;
-var
-  termConst   : IASTTermConstant;
-  termFuncCall: IASTTermFunctionCall;
-  termVar     : IASTTermVariable;
+function TSimpleDSLCodegen.CompileTerm(const astTerm: TASTTerm; var codeTerm: TExpression): boolean;
 begin
   Result := true;
-  if Supports(astTerm, IASTTermConstant, termConst) then
-    codeTerm := CodegenConstant(termConst.Value)
-  else if Supports(astTerm, IASTTermVariable, termVar) then
-    codeTerm := CodegenVariable(termVar.VariableIdx)
-  else if Supports(astTerm, IASTTermFunctionCall, termFuncCall) then
-    Result := CompileFunctionCall(termFuncCall, codeTerm)
+  if astTerm.ClassType = TASTTermConstant then
+    codeTerm := CodegenConstant(TASTTermConstant(astTerm).Value)
+  else if astTerm.ClassType = TASTTermVariable then
+    codeTerm := CodegenVariable(TASTTermVariable(astTerm).VariableIdx)
+  else if astTerm.ClassType = TASTTermFunctionCall then
+    Result := CompileFunctionCall(TASTTermFunctionCall(astTerm), codeTerm)
   else
     Result := SetError('*** Unexpected term');
 end; { TSimpleDSLCodegen.CompileTerm }
