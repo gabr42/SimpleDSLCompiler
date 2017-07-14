@@ -78,4 +78,5 @@ what I'm trying to achieve?
 6) AST Interpreter
 7) Speeding up codegen - Extending the language
 8) Speeding up interpreter - interfaces to classes
-   
+   - Check first!
+9) Code-generating backend - Python
