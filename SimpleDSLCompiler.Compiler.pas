@@ -47,6 +47,7 @@ type
     function  Call(const functionName: string; const params: TParameters; var return: integer): boolean;
     procedure DeclareFunction(idx: integer; const name: string; const code: TFunction);
     function  GetMemoizer(idx: integer): TMemoizer;
+    function  Make(const functionName: string): TFunctionCall;
   end; { TSimpleDSLProgram }
 
   TSimpleDSLCodegen = class(TSimpleDSLCompilerBase, ISimpleDSLCodegen)
@@ -133,6 +134,27 @@ begin
     FMemoizers[idx] := TMemoizer.Create;
   Result := FMemoizers[idx];
 end; { TSimpleDSLProgram.GetMemoizer }
+
+function TSimpleDSLProgram.Make(const functionName: string): TFunctionCall;
+var
+  funcInfo: TFunctionInfo;
+begin
+  for funcInfo in FFunctions do begin
+    if SameText(functionName, funcInfo.Name) then begin
+      Result :=
+        function (const parameters: TParameters): integer
+        var
+          context: TExecContext;
+        begin
+          SetupContext(context);
+          Result := funcInfo.Code(@context, parameters);
+        end;
+      Exit;
+    end;
+  end;
+
+  raise Exception.CreateFmt('TSimpleDSLProgram.Make: Function not found: %s', [functionName]);
+end; { TSimpleDSLProgram.Make }
 
 procedure TSimpleDSLProgram.SetupContext(var context: TExecContext);
 var

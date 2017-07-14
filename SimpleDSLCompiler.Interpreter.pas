@@ -44,6 +44,7 @@ type
     destructor  Destroy; override;
     function  Call(const functionName: string; const params: TParameters;
       var return: integer): boolean;
+    function  Make(const functionName: string): TFunctionCall;
   end; { TSimpleDSLInterpreter }
 
 { exports }
@@ -247,5 +248,24 @@ begin
   else
     Result := SetError('*** Unexpected term');
 end; { TSimpleDSLInterpreter.EvalTerm }
+
+function TSimpleDSLInterpreter.Make(const functionName: string): TFunctionCall;
+var
+  iFunc: integer;
+begin
+  for iFunc := 0 to FAST.Functions.Count - 1 do
+    if SameText(functionName, FAST.Functions[iFunc].Name) then begin
+      Result :=
+        function (const parameters: TParameters): integer
+        begin
+          Result := 0;
+          if not CallFunction(FAST.Functions[iFunc], parameters, Result) then
+            raise Exception.Create('Execution failed with error: ' + LastError);
+        end;
+      Exit;
+    end;
+
+  raise Exception.CreateFmt('TSimpleDSLInterpreter.Make: Function not found: %s', [functionName]);
+end; { TSimpleDSLInterpreter.Make }
 
 end.

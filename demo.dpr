@@ -51,6 +51,7 @@ const
 var
   compiler   : ISimpleDSLCompiler;
   exec       : ISimpleDSLProgram;
+  fibComp    : TFunctionCall;
   interpreter: ISimpleDSLProgram;
   res        : integer;
   sl         : TStringList;
@@ -84,12 +85,12 @@ begin
       else
         Writeln('mult: ' + (exec as ISimpleDSLErrorInfo).ErrorInfo);
 
-      exec.Call('power', [2,10], res);
-      Writeln('2^10 = ', res);
+      Writeln('2^10 = ', exec.Make('power')([2,10]));
+
+      fibComp := exec.Make('fib');
 
       Writeln(fib(7));
-      exec.Call('fib', [7], res);
-      Writeln(res);
+      Writeln(fibComp([7]));
 
       time := DSiTimeGetTime64;
       res := fib(30);
@@ -97,8 +98,7 @@ begin
       Writeln('Native: ', res, ' in ', time, ' ms');
 
       time := DSiTimeGetTime64;
-      res := 0;
-      exec.Call('fib', [30], res);
+      res := fibComp([30]);
       time := DSiElapsedTime64(time);
       Writeln('Compiled: ', res, ' in ', time, ' ms');
 
