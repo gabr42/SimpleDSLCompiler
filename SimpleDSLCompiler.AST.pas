@@ -8,136 +8,6 @@ uses
 type
   TASTTermType = (termConstant, termVariable, termFunctionCall);
 
-  IASTTerm = interface ['{74B36C0D-30A4-47E6-B359-E45C4E94580C}']
-  end; { IASTTerm }
-
-  IASTTermConstant = interface(IASTTerm) ['{737340F5-E605-4480-BE6E-DA56FAA34104}']
-    function  GetValue: integer;
-    procedure SetValue(const value: integer);
-  //
-    property Value: integer read GetValue write SetValue;
-  end; { IASTTermConstant }
-
-  IASTTermVariable = interface(IASTTerm) ['{933DCB5B-6C73-44C2-BEAF-D8E16EF8134C}']
-    function  GetVariableIdx: integer;
-    procedure SetVariableIdx(const value: integer);
-  //
-    property VariableIdx: integer read GetVariableIdx write SetVariableIdx;
-  end; { IASTTermVariable }
-
-  IASTExpression = interface;
-
-  TExpressionList = TList<IASTExpression>;
-
-  IASTTermFunctionCall = interface(IASTTerm) ['{09F0FACF-4A6C-4E59-91C8-5104C560D36C}']
-    function  GetFunctionIdx: integer;
-    function  GetParameters: TExpressionList;
-    procedure SetFunctionIdx(const value: integer);
-  //
-    property FunctionIdx: integer read GetFunctionIdx write SetFunctionIdx;
-    property Parameters: TExpressionList read GetParameters;
-  end; { IASTTermFunctionCall }
-
-  TBinaryOperation = (opNone, opAdd, opSubtract, opCompareLess);
-
-  IASTExpression = interface ['{086BECB3-C733-4875-ABE0-EE71DCC0011D}']
-    function  GetBinaryOp: TBinaryOperation;
-    function  GetTerm1: IASTTerm;
-    function  GetTerm2: IASTTerm;
-    procedure SetBinaryOp(const value: TBinaryOperation);
-    procedure SetTerm1(const value: IASTTerm);
-    procedure SetTerm2(const value: IASTTerm);
-  //
-    property Term1: IASTTerm read GetTerm1 write SetTerm1;
-    property Term2: IASTTerm read GetTerm2 write SetTerm2;
-    property BinaryOp: TBinaryOperation read GetBinaryOp write SetBinaryOp;
-  end; { IASTExpression }
-
-  IASTBlock = interface;
-
-  TASTStatementType = (stIf, stReturn);
-
-  IASTStatement = interface ['{372AF2FA-E139-4EFB-8282-57FFE0EDAEC8}']
-  end; { IASTStatement }
-
-  IASTIfStatement = interface(IASTStatement) ['{A6BE8E87-39EC-4832-9F4A-D5BF0901DA17}']
-    function  GetCondition: IASTExpression;
-    function  GetElseBlock: IASTBlock;
-    function  GetThenBlock: IASTBlock;
-    procedure SetCondition(const value: IASTExpression);
-    procedure SetElseBlock(const value: IASTBlock);
-    procedure SetThenBlock(const value: IASTBlock);
-  //
-    property Condition: IASTExpression read GetCondition write SetCondition;
-    property ThenBlock: IASTBlock read GetThenBlock write SetThenBlock;
-    property ElseBlock: IASTBlock read GetElseBlock write SetElseBlock;
-  end; { IASTIfStatement }
-
-  IASTReturnStatement = interface(IASTStatement) ['{61F7403E-CB08-43FC-AF37-A96B05BB2F9C}']
-    function  GetExpression: IASTExpression;
-    procedure SetExpression(const value: IASTExpression);
-  //
-    property Expression: IASTExpression read GetExpression write SetExpression;
-  end; { IASTReturnStatement }
-
-  TStatementList = TList<IASTStatement>;
-
-  IASTBlock = interface ['{450D40D0-4866-4CD2-98E8-88387F5B9904}']
-    function  GetStatements: TStatementList;
-  //
-    property Statements: TStatementList read GetStatements;
-  end; { IASTBlock }
-
-  TAttributeList = TList<string>;
-  TParameterList = TList<string>;
-
-  IASTFunction = interface ['{FA4F603A-FE89-40D4-8F96-5607E4EBE511}']
-    function  GetAttributes: TAttributeList;
-    function  GetBody: IASTBlock;
-    function  GetName: string;
-    function  GetParamNames: TParameterList;
-    procedure SetBody(const value: IASTBlock);
-    procedure SetName(const value: string);
-  //
-    property Name: string read GetName write SetName;
-    property Attributes: TAttributeList read GetAttributes;
-    property ParamNames: TParameterList read GetParamNames;
-    property Body: IASTBlock read GetBody write SetBody;
-  end; { IASTFunction }
-
-  IASTFunctions = interface ['{95A0897F-ED13-40F5-B955-9917AC911EDB}']
-    function  GetItems(idxFunction: integer): IASTFunction;
-  //
-    function  Add(const func: IASTFunction): integer;
-    function  Count: integer;
-    function  IndexOf(const name: string): integer;
-    property Items[idxFunction: integer]: IASTFunction read GetItems; default;
-  end; { IASTFunctions }
-
-  ISimpleDSLASTFactory = interface ['{1284482C-CA38-4D9B-A84A-B2BAED9CC8E2}']
-    function  CreateBlock: IASTBlock;
-    function  CreateExpression: IASTExpression;
-    function  CreateFunction: IASTFunction;
-    function  CreateStatement(statementType: TASTStatementType): IASTStatement;
-    function  CreateTerm(termType: TASTTermType): IASTTerm;
-  end; { ISimpleDSLASTFactory }
-
-  ISimpleDSLAST = interface(ISimpleDSLASTFactory) ['{114E494C-8319-45F1-91C8-4102AED1809E}']
-    function GetFunctions: IASTFunctions;
-  //
-    property Functions: IASTFunctions read GetFunctions;
-  end; { ISimpleDSLAST }
-
-  TSimpleDSLASTFactory = reference to function: ISimpleDSLAST;
-
-function CreateSimpleDSLAST: ISimpleDSLAST;
-
-implementation
-
-uses
-  System.SysUtils;
-
-type
   TASTTerm = class(TInterfacedObject, IASTTerm)
   end; { TASTTerm }
 
@@ -161,6 +31,8 @@ type
     property VariableIdx: integer read GetVariableIdx write SetVariableIdx;
   end; { TASTTermVariable }
 
+  TExpressionList = TList<IASTExpression>;
+
   TASTTermFunctionCall = class(TASTTerm, IASTTermFunctionCall)
   strict private
     FFunctionIdx: integer;
@@ -175,6 +47,8 @@ type
     property FunctionIdx: integer read GetFunctionIdx write SetFunctionIdx;
     property Parameters: TExpressionList read GetParameters;
   end; { IASTTermFunctionCall }
+
+  TBinaryOperation = (opNone, opAdd, opSubtract, opCompareLess);
 
   TASTExpression = class(TInterfacedObject, IASTExpression)
   strict private
@@ -193,6 +67,8 @@ type
     property Term2: IASTTerm read GetTerm2 write SetTerm2;
     property BinaryOp: TBinaryOperation read GetBinaryOp write SetBinaryOp;
   end; { TASTExpression }
+
+  TASTStatementType = (stIf, stReturn);
 
   TASTStatement = class(TInterfacedObject, IASTStatement)
   end; { TASTStatement }
@@ -225,6 +101,8 @@ type
     property Expression: IASTExpression read GetExpression write SetExpression;
   end; { TASTReturnStatement }
 
+  TStatementList = TList<IASTStatement>;
+
   TASTBlock = class(TInterfacedObject, IASTBlock)
   strict private
     FStatements: TStatementList;
@@ -235,6 +113,9 @@ type
     procedure BeforeDestruction; override;
     property Statements: TStatementList read GetStatements;
   end; { IASTBlock }
+
+  TAttributeList = TList<string>;
+  TParameterList = TList<string>;
 
   TASTFunction = class(TInterfacedObject, IASTFunction)
   strict private
@@ -290,6 +171,21 @@ type
     function  GetFunctions: IASTFunctions; inline;
     property Functions: IASTFunctions read GetFunctions;
   end; { TSimpleDSLAST }
+
+  ISimpleDSLAST = interface(ISimpleDSLASTFactory) ['{114E494C-8319-45F1-91C8-4102AED1809E}']
+    function GetFunctions: IASTFunctions;
+  //
+    property Functions: IASTFunctions read GetFunctions;
+  end; { ISimpleDSLAST }
+
+  TSimpleDSLASTFactory = reference to function: ISimpleDSLAST;
+
+function CreateSimpleDSLAST: ISimpleDSLAST;
+
+implementation
+
+uses
+  System.SysUtils;
 
 { exports }
 
