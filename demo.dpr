@@ -23,7 +23,7 @@ uses
 
 const
   CMultiProcCode =
-    'fib(i) {                          '#13#10 +
+    'fib(i) [memo] {                   '#13#10 +
     '  if i < 3 {                      '#13#10 +
     '    return 1                      '#13#10 +
     '  } else {                        '#13#10 +

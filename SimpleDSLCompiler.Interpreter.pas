@@ -13,7 +13,9 @@ implementation
 uses
   Winapi.Windows,
   System.SysUtils,
-  SimpleDSLCompiler.Base, SimpleDSLCompiler.Parser;
+  System.Generics.Collections,
+  SimpleDSLCompiler.Base,
+  SimpleDSLCompiler.Parser;
 
 type
   TContext = record
@@ -21,9 +23,12 @@ type
     Result: integer;
   end; { TContext }
 
+  TMemoizer = TDictionary<TParameters, integer>;
+
   TSimpleDSLInterpreter = class(TSimpleDSLCompilerBase, ISimpleDSLProgram)
   strict private
-    FAST: ISimpleDSLAST;
+    FAST      : ISimpleDSLAST;
+    FMemoizers: TObjectDictionary<IASTFunction, TMemoizer>;
   strict protected
     function  CallFunction(const func: IASTFunction; const params: TParameters;
       var return: integer): boolean;
@@ -36,6 +41,7 @@ type
     function  EvalTerm(var context: TContext; const term: IASTTerm; var value: integer): boolean;
   public
     constructor Create(const ast: ISimpleDSLAST);
+    destructor  Destroy; override;
     function  Call(const functionName: string; const params: TParameters;
       var return: integer): boolean;
   end; { TSimpleDSLInterpreter }
@@ -53,7 +59,14 @@ constructor TSimpleDSLInterpreter.Create(const ast: ISimpleDSLAST);
 begin
   inherited Create;
   FAST := ast;
+  FMemoizers := TObjectDictionary<IASTFunction, TMemoizer>.Create([doOwnsValues]);
 end; { TSimpleDSLInterpreter.Create }
+
+destructor TSimpleDSLInterpreter.Destroy;
+begin
+  FreeAndNil(FMemoizers);
+  inherited;
+end; { TSimpleDSLInterpreter.Destroy }
 
 function TSimpleDSLInterpreter.Call(const functionName: string; const params: TParameters;
   var return: integer): boolean;
@@ -70,15 +83,30 @@ end; { TSimpleDSLInterpreter.Call }
 function TSimpleDSLInterpreter.CallFunction(const func: IASTFunction; const params:
   TParameters; var return: integer): boolean;
 var
-  context: TContext;
+  context : TContext;
+  memoizer: TMemoizer;
 begin
   if Length(params) <> func.ParamNames.Count then
     Exit(SetError('Invalid number of parameters'));
+
+  memoizer := nil;
+  if func.Attributes.Contains('memo') then begin
+    if not FMemoizers.TryGetValue(func, memoizer) then begin
+      memoizer := TMemoizer.Create;
+      FMemoizers.Add(func, memoizer);
+    end;
+    if memoizer.TryGetValue(params, return) then
+      Exit;
+  end;
+
   context.Params := params;
   context.Result := 0;
   Result := EvalBlock(context, func.Body);
-  if Result then
+  if Result then begin
     return := context.Result;
+    if assigned(memoizer) then
+      memoizer.Add(params, return);
+  end;
 end; { TSimpleDSLInterpreter.CallFunction }
 
 function TSimpleDSLInterpreter.EvalBlock(var context: TContext; const block: IASTBlock):
