@@ -154,7 +154,6 @@ begin
       funcParams: TParameters;
       iParam    : Integer;
     begin
-      AllocConsole;
       SetLength(funcParams, Length(params));
       for iParam := Low(params) to High(params) do
         funcParams[iParam] := params[iParam](context);

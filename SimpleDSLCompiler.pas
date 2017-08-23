@@ -8,7 +8,7 @@ unit SimpleDSLCompiler;
 ///
 /// attribute_list = identifier { ',' identifier }
 ///
-/// block = { statement { ";" statement } [";"] }
+/// block = "{" statement { ";" statement } [";"] "}"
 ///
 /// statement = if
 ///           | return

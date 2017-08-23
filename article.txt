@@ -1,6 +1,7 @@
 Writing a Simple DSL Compiler with Delphi
 
-- motivation: listening about a simple c# interpretor on hanselminutes - https://hanselminutes.com/586/you-should-write-an-interpreter-with-thorsten-ball
+- motivation: listening about a simple c# interpretor on hanselminutes 
+  https://hanselminutes.com/586/you-should-write-an-interpreter-with-thorsten-ball
 - self-doubt: can I execute a simple DSL by rewriting it as a bunch of anonymous functions? 
 - a week later: yes I can!
   - limitations: just for internal program use, "code" cannot be serialized to disk
@@ -76,6 +77,6 @@ what I'm trying to achieve?
 4) AST Dumper
 5) AST Compiler
 6) AST Interpreter
-7) Speeding up codegen - Extending the language
+7) Speeding up execution - Extending the language [memoizer]
 8) Speeding up interpreter - interfaces to classes
-9) Code-generating backend - Python
+[9) Code-generating backend - Python]
