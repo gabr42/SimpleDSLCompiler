@@ -9,11 +9,14 @@ program introduction;
 {$R *.res}
 
 uses
-  System.SysUtils;
+  System.SysUtils,
+  System.Classes,
+  System.Character,
+  System.Generics.Collections;
 
 // Our problem: We want to calculate expressions in form
 //    number1 + number2 + ... + numberN
-// All numbers are integers, the only operator is addition, overflows are ignored.
+// All numbers are non-negative integers, the only operator is addition, overflows are ignored.
 
 // To do that, we will parse each expression into a very simple AST.
 
@@ -25,6 +28,11 @@ type
 
 // At the top of our tree is a 'term'. A term can be either a constant or an addition.
 
+// A constant, as it could be expected, contains an integer value.
+
+// We are not consistent here - the language only allows positive integers but AST is more
+// open and allows negative integers. We'll just ignore that.
+
   TConstant = class(TTerm)
   strict private
     FValue: integer;
@@ -33,7 +41,7 @@ type
     property Value: integer read FValue write FValue;
   end;
 
-// A constant, as it could be expected, contains an integer value.
+// An addition is a binary operation which operates on two terms (left and right side).
 
   TAddition = class(TTerm)
   strict private
@@ -45,8 +53,6 @@ type
     property Term1: TTerm read FTerm1 write FTerm1;
     property Term2: TTerm read FTerm2 write FTerm2;
   end;
-
-// An addition is a binary operation which operates on two terms (left and right side).
 
 constructor TConstant.Create(AValue: integer);
 begin
@@ -130,21 +136,246 @@ var
   const3: TConstant;
 begin
   ast := CreateAST([1, 2, 3]);
-  if assigned(ast)
-     and IsAddition(ast, add1)
-     and IsConstant(add1.Term1, const1) and (const1.Value = 1)
-     and IsAddition(add1.Term2, add2)
-     and IsConstant(add2.Term1, const2) and (const2.Value = 2)
-     and IsConstant(add2.Term2, const3) and (const3.Value = 3)
-  then
-    // everything is fine
-  else
-    raise Exception.Create('CreateAST is not working correctly!');
+  try
+    if assigned(ast)
+       and IsAddition(ast, add1)
+       and IsConstant(add1.Term1, const1) and (const1.Value = 1)
+       and IsAddition(add1.Term2, add2)
+       and IsConstant(add2.Term1, const2) and (const2.Value = 2)
+       and IsConstant(add2.Term2, const3) and (const3.Value = 3)
+    then
+      // everything is fine
+    else
+      raise Exception.Create('CreateAST is not working correctly!');
+  finally FreeAndNil(ast); end;
 end;
 
-// To evaluate this AST, we will use a simple recursion.
+// We will write a simple parser which will create an AST from an expression
+// in form 'number1 + number2 + ... numberN'.
 
-function EvaluateAST(ast: TAST): integer;
+// Our 'language' has only two tokens: a 'number' and an 'addition'. Whitespace is not
+// important and will be ignored in the tokenizer (lexer).
+// All unrecognized characters are returned as a token 'unknown'.
+
+type
+  TTokenKind = (tkNumber, tkAddition, tkUnknown);
+
+// More formal definition of tokens
+//   tkNumber accepts a \d+
+//   tkAddition accepts \+
+//   \s+ is skipped
+//   tkUnknown accepts anything else: [^\d\+\s]
+
+// Tokenizer and parser only need the following information:
+//   1) Input string.
+//   2) Current position.
+// A `TStringStream` class wraps all that so we'll just reuse it.
+
+  TParserState = TStringStream;
+
+// The only tokenizer funcion returns next token and its value as 'var' parameters and
+// returns True if token/value pair was returned or False if end of stream was reached.
+
+// This implementation is very simple but also extremely unoptimized.
+
+function GetToken(state: TParserState; var token: TTokenKind; var value: string): boolean;
+var
+  nextChar: string;
+  position: int64;
+begin
+  repeat
+    nextChar := state.ReadString(1);
+    Result := (nextChar <> '');
+    // Ignore whitespace
+  until (not Result) or (not nextChar[1].IsWhiteSpace);
+
+  if Result then begin
+    value := nextChar[1];
+
+    // Addition
+     if value = '+' then
+      token := tkAddition
+
+    // Number
+    else if value[1].IsNumber then begin
+      token := tkNumber;
+      repeat
+        position := state.Position;
+        nextChar := state.ReadString(1);
+
+        // End of stream, stop
+        if nextChar = '' then
+          break //repeat
+
+        // Another number, append
+        else if nextChar[1].IsNumber then
+          value := value + nextChar[1]
+
+        // Read too far, retract
+        else begin
+          state.Position := position;
+          break; //repeat
+        end;
+      until false;
+    end
+
+    // Unexpected input
+    else
+      token := tkUnknown;
+  end;
+end;
+
+// Some tests for the tokenizer are needed ...
+
+// ExpectFail(state) calls GetToken and expects it to return False
+
+procedure ExpectFail(state: TParserState);
+var
+  token: TTokenKind;
+  value: string;
+begin
+  if GetToken(state, token, value) then
+    raise Exception.Create('ExpectFail failed');
+end;
+
+// Expect(State, token, value) calls GetNextToken and expects it to return True
+// and the same token/value as passed in the parameters.
+
+procedure Expect(state: TParserState; expectedToken: TTokenKind; expectedValue: string);
+var
+  token: TTokenKind;
+  value: string;
+begin
+  if not GetToken(state, token, value) then
+    raise Exception.Create('Expect failed')
+  else if token <> expectedToken then
+    raise Exception.CreateFmt('Expect encountered invalid token kind (%d, expected %d)',
+                              [Ord(token), Ord(expectedToken)])
+  else if value <> expectedValue then
+    raise Exception.CreateFmt('Expect encountered invalid value (%s, expected %s)',
+                              [value, expectedValue])
+end;
+
+procedure TestGetToken;
+var
+  state: TParserState;
+begin
+  state := TParserState.Create('');
+  ExpectFail(state);
+  FreeAndNil(state);
+
+  state := TParserState.Create('1');
+  Expect(state, tkNumber, '1');
+  ExpectFail(state);
+  FreeAndNil(state);
+
+  state := TParserState.Create('1+22 333 Ab');
+  Expect(state, tkNumber, '1');
+  Expect(state, tkAddition, '+');
+  Expect(state, tkNumber, '22');
+  Expect(state, tkNumber, '333');
+  Expect(state, tkUnknown, 'A');
+  Expect(state, tkUnknown, 'b');
+  ExpectFail(state);
+  FreeAndNil(state);
+end;
+
+// Parser accepts any valid string and converts it into an AST.
+// If a program is valid, it will create an AST for the program, return it in the `ast`
+// parameter, and set result to True.
+// If a program is not valid, `ast` will be nil and result will be False.
+
+// Accepted grammar is
+//   S -> Term
+//   Term -> number
+//   Term -> Term '+' Term
+
+// Empty input is not accepted.
+
+function Parse(const prog: string; var ast: TAST): boolean;
+var
+  accept : TTokenKind;
+  numbers: TList<integer>;
+  state  : TParserState;
+  token  : TTokenKind;
+  value  : string;
+begin
+  // We can easily see that the above grammar generates exactly the following sequence of tokens:
+  //   tkNumber (tkAddition tkNumber)*
+  // (The proof is left out as an excercise for the reader.
+
+  // The code will check the syntax and extract all numbers in an TArray<integer>.
+  // At the end it will pass this array to the CreateAST function to create the AST.
+
+  ast := nil;
+  Result := false;
+
+  state := TParserState.Create(prog);
+  try
+    numbers := TList<integer>.Create;
+    try
+      accept := tkNumber;
+      while GetToken(state, token, value) do begin
+        if token <> accept then
+          Exit;
+        if accept = tkNumber then begin
+          numbers.Add(StrToInt(value));
+          accept := tkAddition;
+        end
+        else
+          accept := tkNumber;
+      end;
+
+      if accept = tkNumber then
+        // Last token in the program was tkAddition, which is not allowed.
+        Exit;
+
+      if numbers.Count > 0 then begin
+        ast := CreateAST(numbers.ToArray);
+        Result := true;
+      end;
+    finally FreeAndNil(numbers); end;
+  finally FreeAndNil(state); end;
+end;
+
+// We need more tests ...
+
+procedure TestParse;
+var
+  add1  : TAddition;
+  add2  : TAddition;
+  ast   : TAST;
+  const1: TConstant;
+  const2: TConstant;
+  const3: TConstant;
+begin
+  if not Parse('1+2 + 3', ast) then
+    raise Exception.Create('Parser failed');
+  try
+    if assigned(ast)
+       and IsAddition(ast, add1)
+       and IsConstant(add1.Term1, const1) and (const1.Value = 1)
+       and IsAddition(add1.Term2, add2)
+       and IsConstant(add2.Term1, const2) and (const2.Value = 2)
+       and IsConstant(add2.Term2, const3) and (const3.Value = 3)
+    then
+      // everything is fine
+    else
+      raise Exception.Create('CreateAST is not working correctly!');
+  finally FreeAndNil(ast); end;
+
+  if Parse('1+2 +', ast) then begin
+    if assigned(ast) then
+      raise Exception.Create('Invalid program resulted in an AST!)')
+    else
+      raise Exception.Create('Invalid program compiled into an empty AST!');
+  end;
+
+end;
+
+// To interpret this AST, we will use a simple recursion.
+
+function InterpretAST(ast: TAST): integer;
 var
   add1  : TAddition;
   const1: TConstant;
@@ -157,14 +388,14 @@ begin
   if IsConstant(ast, const1) then
     Result := const1.Value
   else if IsAddition(ast, add1) then
-    Result := EvaluateAST(add1.Term1) + EvaluateAST(add1.Term2)
+    Result := InterpretAST(add1.Term1) + InterpretAST(add1.Term2)
   else
     raise Exception.Create('Internal error. Unknown AST element: ' + ast.ClassName);
 end;
 
 // Some sanity tests are always welcome ...
 
-procedure TestEvaluateAST;
+procedure TestInterpretAST;
 
   procedure Test(const testName: string; const values: TArray<integer>; expectedResult: integer);
   var
@@ -176,7 +407,7 @@ procedure TestEvaluateAST;
       raise Exception.CreateFmt('Compilation failed in test %s', [testName]);
 
     try
-      calcResult := EvaluateAST(ast);
+      calcResult := InterpretAST(ast);
       if calcResult <> expectedResult then
         raise Exception.CreateFmt(
                 'Evaluation failed in test %s. Calculated result %d <> expected result %d',
@@ -281,7 +512,7 @@ end;
 
 procedure TestCompileAST;
 
-  procedure Test(const testName: string; const values: TArray<integer>; expectedResult: integer);
+  procedure Test(const testName: string; const prog: string; expectedResult: integer);
   var
     add1      : TAddition;
     ast       : TAST;
@@ -289,14 +520,13 @@ procedure TestCompileAST;
     code      : TFunc<integer>;
     const1    : TConstant;
   begin
-    ast := CreateAST(values);
-    if not assigned(ast) then
-      raise Exception.CreateFmt('Compilation failed in test %s', [testName]);
+    if not (Parse(prog, ast) and assigned(ast)) then
+      raise Exception.CreateFmt('Parser failed in test %s', [testName]);
 
     try
       code := CompileAST(ast);
       if not assigned(code) then
-        raise Exception.CreateFmt('Codegen failed in test %s', [testName]);
+        raise Exception.CreateFmt('Compilation failed in test %s', [testName]);
 
       // Let's make sure that `ast.Value` was captured by value and not by reference.
       // Changing AST now should not affect the compiled code.
@@ -320,9 +550,29 @@ procedure TestCompileAST;
   end;
 
 begin
-  Test('1', [42], 42);
-  Test('2', [1, 2, 3], 6);
-  Test('3', [2, -2, 3, -3], 0);
+  Test('1', '42', 42);
+  Test('2', '1 + 2 + 3', 6);
+  Test('3', '2 + 2 +3+3', 10);
+end;
+
+// If all tests pass, we'll run a Read-Eval-Print Loop so that user can test our compiler.
+
+procedure RunREPL;
+var
+  ast : TAST;
+  prog: string;
+begin
+  repeat
+    Write('Enter an expression (empty line exits): ');
+    Readln(prog);
+    if prog = '' then
+      break;
+
+    if not Parse(prog, ast) then
+      Writeln('Syntax is not valid')
+    else
+      Writeln('Result is: ', CompileAST(ast)());
+  until false;
 end;
 
 begin
@@ -332,17 +582,23 @@ begin
     Writeln('Running AST creation tests ...');
     TestCreateAST;
 
+    Writeln('Running tokenizer tests ...');
+    TestGetToken;
+
+    Writeln('Running parser test ...');
+    TestParse;
+
     Writeln('Running AST interpreter tests ...');
-    TestEvaluateAST;
+    TestInterpretAST;
 
     Writeln('Running AST compilation tests ...');
     TestCompileAST;
-  except
-    on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
-  end;
 
-  // Over and out.
-  Write('All done. Press Enter to exit.');
-  Readln;
+    RunREPL;
+  except
+    on E: Exception do begin
+      Writeln(E.ClassName, ': ', E.Message);
+      Readln;
+    end;
+  end;
 end.
