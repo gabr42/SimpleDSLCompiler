@@ -119,9 +119,8 @@ procedure TSimpleDSLCodegenDump.DumpIfStatement(const indent: string; const stat
   TASTIfStatement);
 begin
   WriteText(indent);
-  WriteText('if (');
+  WriteText('if ');
   DumpExpression(statement.Condition);
-  WriteText(')');
   DumpBlock(indent, statement.ThenBlock);
   WriteText(indent);
   WriteText('else');
