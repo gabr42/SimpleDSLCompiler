@@ -1,5 +1,5 @@
 // This program presents a gentle introduction into the 'compiler-compiler' topic.
-// It is written in a Literal Programming manner and is intended to be read as a story
+// It is written in a Literate Programming manner and is intended to be read as a story
 // from top to bottom.
 
 program introduction;
@@ -18,7 +18,15 @@ uses
 //    number1 + number2 + ... + numberN
 // All numbers are non-negative integers, the only operator is addition, overflows are ignored.
 
-// To do that, we will parse each expression into a very simple AST.
+// Formally, we can describe our programs with the following grammar.
+//
+//   S -> Term
+//   Term -> number
+//   Term -> Term '+' Term
+//
+// White space will be ignored by the parser and is therefore not part of the grammar.
+
+// We will start with a very simple AST that will store the parsed version of the program.
 
 type
   TTerm = class abstract
@@ -169,6 +177,7 @@ type
 // Tokenizer and parser only need the following information:
 //   1) Input string.
 //   2) Current position.
+
 // A `TStringStream` class wraps all that so we'll just reuse it.
 
   TParserState = TStringStream;
@@ -193,7 +202,7 @@ begin
     value := nextChar[1];
 
     // Addition
-     if value = '+' then
+    if value = '+' then
       token := tkAddition
 
     // Number
@@ -238,6 +247,7 @@ begin
     raise Exception.Create('ExpectFail failed');
 end;
 
+
 // Expect(State, token, value) calls GetNextToken and expects it to return True
 // and the same token/value as passed in the parameters.
 
@@ -248,9 +258,11 @@ var
 begin
   if not GetToken(state, token, value) then
     raise Exception.Create('Expect failed')
+
   else if token <> expectedToken then
     raise Exception.CreateFmt('Expect encountered invalid token kind (%d, expected %d)',
                               [Ord(token), Ord(expectedToken)])
+
   else if value <> expectedValue then
     raise Exception.CreateFmt('Expect encountered invalid value (%s, expected %s)',
                               [value, expectedValue])
@@ -284,12 +296,6 @@ end;
 // If a program is valid, it will create an AST for the program, return it in the `ast`
 // parameter, and set result to True.
 // If a program is not valid, `ast` will be nil and result will be False.
-
-// Accepted grammar is
-//   S -> Term
-//   Term -> number
-//   Term -> Term '+' Term
-
 // Empty input is not accepted.
 
 function Parse(const prog: string; var ast: TAST): boolean;
